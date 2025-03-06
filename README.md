@@ -1,4 +1,4 @@
-# Pathology Learning Management System
+# Pathology Museum
 
 A comprehensive learning platform for pathology education featuring 3D specimens, digital slides, and interactive learning resources.
 
