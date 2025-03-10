@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { EnvelopeIcon, LockClosedIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5001/api';
+const API_URL = 'http://localhost:5000/api';
 
 export default function Login() {
   const navigate = useNavigate();

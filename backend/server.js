@@ -22,7 +22,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Connect to MongoDB
-const MONGODB_URI = 'mongodb+srv://annie:annie25@data.d1uty.mongodb.net/pathology_museum?retryWrites=true&w=majority&appName=Data';
+const MONGODB_URI = process.env.MONGODB_URI;
 
 console.log('Attempting to connect to MongoDB Atlas...');
 mongoose.connect(MONGODB_URI, {
@@ -30,20 +30,20 @@ mongoose.connect(MONGODB_URI, {
   family: 4
 })
   .then(() => {
-    console.log('✅ Successfully connected to MongoDB Atlas');
-    console.log('📁 Database: pathology_museum');
-    console.log('🔌 Connection state:', mongoose.connection.readyState);
-    console.log('📚 Models loaded:', Object.keys({ User, Specimen, Slide }).join(', '));
+    console.log(' Successfully connected to MongoDB Atlas');
+    console.log(' Database: pathology_museum');
+    console.log(' Connection state:', mongoose.connection.readyState);
+    console.log(' Models loaded:', Object.keys({ User, Specimen, Slide }).join(', '));
     startServer();
   })
   .catch((err) => {
-    console.error('❌ MongoDB connection error:', err.message);
+    console.error(' MongoDB connection error:', err.message);
     process.exit(1);
   });
 
 // Monitor database connection
 mongoose.connection.on('error', err => {
-  console.error('❌ MongoDB connection error:', err.message);
+  console.error(' MongoDB connection error:', err.message);
 });
 
 mongoose.connection.on('disconnected', () => {
@@ -52,11 +52,11 @@ mongoose.connection.on('disconnected', () => {
   mongoose.connect(MONGODB_URI, {
     serverSelectionTimeoutMS: 5000,
     family: 4
-  }).catch(err => console.error('❌ Reconnection failed:', err.message));
+  }).catch(err => console.error(' Reconnection failed:', err.message));
 });
 
 mongoose.connection.on('connected', () => {
-  console.log('✅ MongoDB connected successfully');
+  console.log(' MongoDB connected successfully');
 });
 
 // Request logging middleware
@@ -95,7 +95,7 @@ app.use((req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error('❌ Error:', err);
+  console.error(' Error:', err);
 
   // Mongoose validation error
   if (err.name === 'ValidationError') {
@@ -122,20 +122,20 @@ app.use((err, req, res, next) => {
 
 // Start server function
 function startServer() {
-  const PORT = process.env.PORT || 5001;
+  const PORT = process.env.PORT || 5000;
   const server = app.listen(PORT, () => {
-    console.log(`🚀 Server is running on port ${PORT}`);
-    console.log(`📡 API endpoints available at http://localhost:${PORT}/api`);
+    console.log(` Server is running on port ${PORT}`);
+    console.log(` API endpoints available at http://localhost:${PORT}/api`);
   }).on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
-      console.error(`❌ Port ${PORT} is already in use. Trying ${PORT + 1}...`);
+      console.error(` Port ${PORT} is already in use. Trying ${PORT + 1}...`);
       server.close();
       app.listen(PORT + 1, () => {
-        console.log(`🚀 Server is running on port ${PORT + 1}`);
-        console.log(`📡 API endpoints available at http://localhost:${PORT + 1}/api`);
+        console.log(` Server is running on port ${PORT + 1}`);
+        console.log(` API endpoints available at http://localhost:${PORT + 1}/api`);
       });
     } else {
-      console.error('❌ Server error:', err.message);
+      console.error(' Server error:', err.message);
     }
   });
 }
