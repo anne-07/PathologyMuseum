@@ -181,94 +181,23 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* Modern Contact Form Section */}
-<div className="bg-white py-24 sm:py-32">
-  <div className="mx-auto max-w-7xl px-6 lg:px-8">
-    <div className="mx-auto max-w-2xl text-center">
-      <h2 className="text-3xl font-bold tracking-tight text-primary-600 sm:text-4xl">
-        Contact Us
-      </h2>
-      <p className="mt-2 text-lg leading-8 text-gray-600">
-        Have questions or suggestions? We'd love to hear from you.
-      </p>
+      <div className="bg-white py-24 sm:py-32">
+      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+        <div className="mx-auto max-w-2xl text-center">
+          <h2 className="text-3xl font-bold tracking-tight text-primary-600 sm:text-4xl">
+            Contact Us
+          </h2>
+          <p className="mt-2 text-lg leading-8 text-gray-600">
+            Reach out to us through the following details.
+          </p>
+        </div>
+        <div className="mx-auto mt-16 max-w-xl sm:mt-20 text-center">
+          <p className="text-lg text-gray-700 font-medium">Phone: +91 8888888888</p>
+          <p className="text-lg text-gray-700 font-medium">Email: abc@gmail.com</p>
+          <p className="text-lg text-gray-700 font-medium">Address: Pune, India</p>
+        </div>
+      </div>
     </div>
-    <form onSubmit={handleSubmit} className="mx-auto mt-16 max-w-xl sm:mt-20">
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-        {/* Name Field */}
-        <div className="relative">
-          <label htmlFor="name" className="absolute -top-2 left-2 bg-white px-1 text-sm font-medium text-gray-900">
-            Full name
-          </label>
-          <input
-            type="text"
-            name="name"
-            id="name"
-            value={formData.name}
-            onChange={handleChange}
-            className="block w-full rounded-lg border-0 px-4 py-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
-            required
-          />
-        </div>
-
-        {/* Email Field */}
-        <div className="relative">
-          <label htmlFor="email" className="absolute -top-2 left-2 bg-white px-1 text-sm font-medium text-gray-900">
-            Email
-          </label>
-          <input
-            type="email"
-            name="email"
-            id="email"
-            value={formData.email}
-            onChange={handleChange}
-            className="block w-full rounded-lg border-0 px-4 py-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
-            required
-          />
-        </div>
-
-        {/* Subject Field */}
-        <div className="col-span-full relative">
-          <label htmlFor="subject" className="absolute -top-2 left-2 bg-white px-1 text-sm font-medium text-gray-900">
-            Subject
-          </label>
-          <input
-            type="text"
-            name="subject"
-            id="subject"
-            value={formData.subject}
-            onChange={handleChange}
-            className="block w-full rounded-lg border-0 px-4 py-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
-            required
-          />
-        </div>
-
-        {/* Message Field */}
-        <div className="col-span-full relative">
-          <label htmlFor="message" className="absolute -top-2 left-2 bg-white px-1 text-sm font-medium text-gray-900">
-            Message
-          </label>
-          <textarea
-            name="message"
-            id="message"
-            rows={4}
-            value={formData.message}
-            onChange={handleChange}
-            className="block w-full rounded-lg border-0 px-4 py-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
-            required
-          />
-        </div>
-      </div>
-      <div className="mt-10 flex items-center justify-end gap-x-6">
-        <button
-          type="submit"
-          className="rounded-lg bg-gradient-to-r from-primary-600 to-primary-800 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:from-primary-500 hover:to-primary-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
-        >
-          Send Message
-        </button>
-      </div>
-    </form>
-  </div>
-</div>
 </div>
 );
 }
