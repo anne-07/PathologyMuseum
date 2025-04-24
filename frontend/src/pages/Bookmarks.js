@@ -1,28 +1,73 @@
-import React from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
-
-const mockBookmarks = [
-  {
-    id: 'spec1',
-    type: 'specimen',
-    name: 'Uterine Fibroids',
-    description: 'Multiple well-circumscribed nodules within the myometrium',
-    imageUrl: 'https://plus.unsplash.com/premium_photo-1674086619163-54bd6379f538?q=80&w=1975&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-    folder: 'Exam Prep',
-    notes: 'Review gross appearance and microscopic features',
-  },
-  {
-    id: 'slide1',
-    type: 'slide',
-    name: 'Histological Section of Myoma',
-    description: 'H&E stained section showing whorled pattern of smooth muscle bundles',
-    imageUrl: 'https://plus.unsplash.com/premium_photo-1674086619163-54bd6379f538?q=80&w=1975&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-    folder: 'Revisions',
-    notes: 'Compare with normal myometrium',
-  },
-];
+import axios from 'axios';
+import { AuthContext } from '../context/AuthContext';
 
 export default function Bookmarks() {
+  const { isAuthenticated } = useContext(AuthContext);
+  const [bookmarks, setBookmarks] = useState([]);
+  const [editingId, setEditingId] = useState(null);
+  const [editNote, setEditNote] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    setLoading(true);
+    const token = localStorage.getItem('token');
+    axios.get('/api/bookmarks', {
+      headers: { Authorization: `Bearer ${token}` },
+      withCredentials: true
+    })
+      .then(res => {
+        setBookmarks(res.data.data);
+        setLoading(false);
+      })
+      .catch(err => {
+        setError('Failed to load bookmarks');
+        setLoading(false);
+      });
+  }, [isAuthenticated]);
+
+  const handleDelete = (id) => {
+    const token = localStorage.getItem('token');
+    axios.delete(`/api/bookmarks/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      withCredentials: true
+    })
+      .then(() => {
+        setBookmarks(bookmarks.filter(b => b._id !== id));
+      })
+      .catch(() => setError('Failed to delete bookmark'));
+  };
+
+  const handleEdit = (id, note) => {
+    setEditingId(id);
+    setEditNote(note);
+  };
+
+  const handleSaveNote = (bookmark) => {
+    const token = localStorage.getItem('token');
+    axios.post('/api/bookmarks', {
+      ...bookmark,
+      notes: editNote
+    }, {
+      headers: { Authorization: `Bearer ${token}` },
+      withCredentials: true
+    })
+      .then(res => {
+        setBookmarks(bookmarks.map(b =>
+          b._id === bookmark._id ? { ...b, notes: editNote } : b
+        ));
+        setEditingId(null);
+      })
+      .catch(() => setError('Failed to update note'));
+  };
+
+  if (!isAuthenticated) return <div className="p-8">Please log in to view your bookmarks.</div>;
+  if (loading) return <div className="p-8">Loading bookmarks...</div>;
+  if (error) return <div className="p-8 text-red-500">{error}</div>;
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -32,21 +77,16 @@ export default function Bookmarks() {
               Your Bookmarks
             </h2>
           </div>
-          <div className="mt-4 flex md:ml-4 md:mt-0">
-            <button
-              type="button"
-              className="inline-flex items-center rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-700"
-            >
-              New Folder
-            </button>
-          </div>
         </div>
 
         <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {mockBookmarks.map((bookmark) => (
-            <div
+          {bookmarks.length === 0 && <div className="text-gray-500">No bookmarks yet.</div>}
+          {bookmarks.map((bookmark) => (
+            <Link
               key={bookmark.id}
-              className="relative flex flex-col overflow-hidden rounded-lg border border-gray-300 bg-white"
+              to={`/${bookmark.type}s/${bookmark.id}`}
+              className="relative flex flex-col overflow-hidden rounded-lg border border-gray-300 bg-white hover:shadow-lg transition-shadow"
+              style={{ textDecoration: 'none' }}
             >
               <div className="aspect-w-3 aspect-h-2 bg-gray-200">
                 <img
@@ -61,20 +101,17 @@ export default function Bookmarks() {
                 </div>
               </div>
               <div className="flex flex-1 flex-col p-4">
-                <h3 className="text-lg font-medium text-gray-900">
-                  <Link to={`/${bookmark.type}s/${bookmark.id}`} className="hover:underline">
-                    {bookmark.name}
-                  </Link>
+                <h3 className="text-lg font-medium text-gray-900 group-hover:underline">
+                  {bookmark.name}
                 </h3>
                 <p className="mt-1 text-sm text-gray-500">{bookmark.description}</p>
-                {bookmark.notes && (
-                  <div className="mt-4 border-t border-gray-200 pt-4">
-                    <h4 className="text-sm font-medium text-gray-900">Notes</h4>
-                    <p className="mt-1 text-sm text-gray-500">{bookmark.notes}</p>
-                  </div>
-                )}
+                <div className="mt-4 border-t border-gray-200 pt-4">
+                  <h4 className="text-sm font-medium text-gray-900">Notes</h4>
+                  <p className="mt-1 text-sm text-gray-500">{bookmark.notes || 'No notes'}</p>
+                  <span className="text-xs text-gray-400">(Edit/delete in detail page)</span>
+                </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </div>

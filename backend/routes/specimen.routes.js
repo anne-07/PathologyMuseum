@@ -8,10 +8,18 @@ router.get('/test', (req, res) => {
     res.json({ message: 'Specimen route is working' });
 });
 
-// Get all specimens
+// Get all specimens with optional filtering
 router.get('/', async (req, res) => {
   try {
-    const specimens = await Specimen.find()
+    // Build filter object from query params
+    const filter = {};
+    if (req.query.category) filter.category = req.query.category;
+    if (req.query.organ) filter.organ = req.query.organ;
+    if (req.query.diagnosis) filter.diagnosis = req.query.diagnosis;
+    if (req.query.system) filter.system = req.query.system;
+    // if (req.query.severity) filter.severity = req.query.severity;
+
+    const specimens = await Specimen.find(filter)
       .populate('createdBy', 'username')
       .sort('-createdAt');
     

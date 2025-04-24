@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
 import LandingPage from './pages/LandingPage';
 import Home from './pages/Home';
 import Specimens from './pages/Specimens';
@@ -16,6 +17,7 @@ import About from './pages/About';
 import Contact from './pages/Contact';
 import Privacy from './pages/Privacy';
 import AdminPanel from './pages/AdminPanel';
+import Profile from './pages/Profile';
 
 const router = createBrowserRouter([
   {
@@ -74,6 +76,10 @@ const router = createBrowserRouter([
         path: "admin",
         element: <AdminPanel />,
       },
+      {
+        path: "profile", 
+        element: <Profile />,
+      },
     ],
   },
 ]);
@@ -81,6 +87,8 @@ const router = createBrowserRouter([
 const root = createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <RouterProvider router={router} />
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
   </React.StrictMode>
 );

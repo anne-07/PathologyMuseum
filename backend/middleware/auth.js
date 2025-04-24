@@ -1,19 +1,25 @@
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
+const asyncHandler = require('express-async-handler')
 
 const auth = async (req, res, next) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
+    //let token
+    const token = req.headers.authorization && req.headers.authorization.split(' ')[1];
+    console.log('Authorization header:', req.headers.authorization);
+
+    //const token = req.cookies?.jwt;
     if (!token) {
       return res.status(401).json({
         status: 'error',
-        message: 'Authentication required'
+        message: 'Authentication required, no token'
       });
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    const user = await User.findById(decoded.id);
-
+    console.log("Decoded ID:", decoded.id);
+    const user = await User.findById(decoded.id).select('-password');
+    console.log("Found User:", user);
     if (!user) {
       return res.status(401).json({
         status: 'error',

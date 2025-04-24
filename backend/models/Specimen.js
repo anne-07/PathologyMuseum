@@ -3,7 +3,6 @@ const mongoose = require('mongoose');
 const specimenSchema = new mongoose.Schema({
   accessionNumber: {
     type: String,
-    required: [true, 'Accession number is required'],
     unique: true,
     trim: true
   },
@@ -21,53 +20,53 @@ const specimenSchema = new mongoose.Schema({
     required: [true, 'Organ system is required'],
     trim: true
   },
+  system: {
+    type: String,
+    required: [true, 'System is required'],
+    trim: true
+  },
   diagnosis: {
     type: String,
     required: [true, 'Diagnosis is required'],
     trim: true
   },
-  clinicalHistory: {
-    type: String,
-    required: [true, 'Clinical history is required']
-  },
-  grossFeatures: {
-    type: String,
-    required: [true, 'Gross features are required']
-  },
-  microscopicFeatures: {
-    type: String,
-    required: [true, 'Microscopic features are required']
-  },
+  
   category: {
     type: String,
     required: [true, 'Category is required'],
-    enum: ['Neoplastic', 'Non-neoplastic', 'Inflammatory', 'Developmental', 'Other']
+    trim: true
   },
   images: [{
     url: {
       type: String,
-      required: true
+      required: false
     },
     caption: String,
     type: {
       type: String,
-      enum: ['Gross', 'Microscopic'],
-      required: true
+      required: false
     }
+  }],
+  audio: [{
+    url: {
+      type: String,
+      required: false
+    },
+    caption: String
+  }],
+  models3d: [{
+    url: {
+      type: String
+    },
+    caption: String
   }],
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
   }
+},{
+  timestamps:true,
 });
 
 // Update the updatedAt timestamp before saving

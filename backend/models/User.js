@@ -28,11 +28,10 @@ const userSchema = new mongoose.Schema({
       message: '{VALUE} is not a valid role'
     },
     default: 'student'
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
   }
+  
+},{
+  timestamps:true
 });
 
 // Hash password before saving

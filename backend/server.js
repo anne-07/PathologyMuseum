@@ -2,10 +2,14 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const cookieparser = require('cookie-parser');
+
 const { User, Specimen, Slide } = require('./models');
 const authRoutes = require('./routes/auth.routes');
 const specimenRoutes = require('./routes/specimen.routes');
 const slideRoutes = require('./routes/slide.routes');
+const bookmarkRoutes = require('./routes/bookmark.routes');
+// const userRoutes = require('./routes/userRoutes'); 
 
 const app = express();
 
@@ -20,6 +24,10 @@ app.use(cors({
 // Body parser middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+// app.use(cookieparser());
+
+// Register API routes
+app.use('/api/bookmarks', bookmarkRoutes);
 
 // Connect to MongoDB
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -69,6 +77,8 @@ app.use((req, res, next) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/specimens', specimenRoutes);
 app.use('/api/slides', slideRoutes);
+app.use('/api/filter-options', require('./routes/filterOption.routes'));
+// app.use('/api/users', userRoutes);
 
 // Test route
 app.get('/api/test', (req, res) => {
@@ -120,19 +130,21 @@ app.use((err, req, res, next) => {
   });
 });
 
+
+
 // Start server function
 function startServer() {
   const PORT = process.env.PORT || 5000;
   const server = app.listen(PORT, () => {
     console.log(` Server is running on port ${PORT}`);
-    console.log(` API endpoints available at http://localhost:${PORT}/api`);
+    
   }).on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
       console.error(` Port ${PORT} is already in use. Trying ${PORT + 1}...`);
       server.close();
       app.listen(PORT + 1, () => {
         console.log(` Server is running on port ${PORT + 1}`);
-        console.log(` API endpoints available at http://localhost:${PORT + 1}/api`);
+        
       });
     } else {
       console.error(' Server error:', err.message);

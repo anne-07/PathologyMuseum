@@ -41,7 +41,7 @@ export default function Home() {
       setUser(userData);
     } catch (error) {
       console.error('Error parsing user data:', error);
-      navigate('/login');
+      navigate('/login', { state: { message: 'Session expired. Please log in again.' } });
     }
   }, [navigate]);
 
@@ -59,6 +59,7 @@ export default function Home() {
               <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
                 Welcome back, {user.username}
               </h2>
+
               <p className="mt-1 text-sm text-gray-500">
                 Role: {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
               </p>

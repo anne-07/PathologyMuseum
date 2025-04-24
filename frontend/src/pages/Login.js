@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { EnvelopeIcon, LockClosedIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
+import { AuthContext } from '../context/AuthContext';
 
 const API_URL = 'http://localhost:5000/api';
 
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { setIsAuthenticated, setUser } = useContext(AuthContext);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -49,12 +51,19 @@ export default function Login() {
       });
 
       if (response.data.status === 'success') {
+        const { token, user } = response.data.data;
         // Store the token
-        localStorage.setItem('token', response.data.data.token);
+        localStorage.setItem('token', token);
         // Store user data
-        localStorage.setItem('user', JSON.stringify(response.data.data.user));
+        localStorage.setItem('user', JSON.stringify(user));
         // Redirect to home page
-        navigate('/home');
+        setIsAuthenticated(true);
+        setUser(response.data.data.user);
+        if (user.role === 'admin') {
+          navigate('/admin');
+        } else {
+          navigate('/home');
+        }
       }
     } catch (err) {
       console.error('Login error:', err.response?.data || err.message);

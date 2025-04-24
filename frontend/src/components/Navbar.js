@@ -1,27 +1,38 @@
-import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useState, useContext} from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu } from '@headlessui/react';
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
+import { AuthContext } from '../context/AuthContext';
 
 const navigation = [
   { name: 'Home', href: '/home' },
   { name: 'Specimens', href: '/specimens' },
   { name: 'Slides', href: '/slides' },
   { name: 'Bookmarks', href: '/bookmarks' },
-  { name: 'About', href: '/about' },
-  { name: 'Contact', href: '/contact' },
+  // { name: 'About', href: '/about' },
+  // { name: 'Contact', href: '/contact' },
+  { name: 'Admin Panel', href: '/admin', adminOnly: true },
 ];
 
 export default function Navbar() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isActive = (path) => {
     return location.pathname === path;
   };
 
-  // Mock auth state - replace with actual auth
-  const isAuthenticated = false;
+  // Auth state (with user role)
+  const { isAuthenticated, user, setIsAuthenticated, setUser } = useContext(AuthContext);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setIsAuthenticated(false);
+    setUser(null);
+    navigate('/login');
+  };
 
   return (
     <header className="bg-white shadow z-50 relative">
@@ -32,19 +43,23 @@ export default function Navbar() {
               <span className="text-2xl font-bold text-primary-600">PathologyMuseum</span>
             </Link>
             <div className="hidden ml-10 space-x-8 md:flex">
-              {navigation.map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={`${
-                    isActive(item.href)
-                      ? 'text-primary-600 border-b-2 border-primary-600'
-                      : 'text-gray-500 hover:text-gray-900'
-                  } text-base font-medium cursor-pointer`}
-                >
-                  {item.name}
-                </Link>
-              ))}
+              {navigation.map((item) => {
+                // Only show admin panel if user is authenticated and is admin
+                if (item.adminOnly && (!isAuthenticated || !user || user.role !== 'admin')) return null;
+                return (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    className={`${
+                      isActive(item.href)
+                        ? 'text-primary-600 border-b-2 border-primary-600'
+                        : 'text-gray-500 hover:text-gray-900'
+                    } text-base font-medium cursor-pointer`}
+                  >
+                    {item.name}
+                  </Link>
+                );
+              })}
             </div>
           </div>
 
@@ -54,8 +69,15 @@ export default function Navbar() {
                 <Menu as="div" className="relative ml-3">
                   <Menu.Button className="flex rounded-full bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
                     <span className="sr-only">Open user menu</span>
-                    <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center">
+                    {/* <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center">
                       <span className="text-primary-800 font-medium">JD</span>
+                    </div> */}
+                    <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center">
+                      <img
+                        src={ 'https://cdn-icons-png.flaticon.com/512/6522/6522516.png'}
+                        alt="Profile"
+                        className="h-8 w-8 rounded-full"
+                      />
                     </div>
                   </Menu.Button>
                   <Menu.Items className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
@@ -74,6 +96,7 @@ export default function Navbar() {
                     <Menu.Item>
                       {({ active }) => (
                         <button
+                          onClick={handleLogout}
                           className={`${
                             active ? 'bg-gray-100' : ''
                           } block w-full text-left px-4 py-2 text-sm text-gray-700`}
@@ -135,7 +158,38 @@ export default function Navbar() {
                       )}
                     </Menu.Item>
                   ))}
-                  {!isAuthenticated && (
+                  {isAuthenticated ? (
+                    <>
+                      <Menu.Item>
+                        {({ active }) => (
+                          <Link
+                            to="/profile"
+                            className={`${
+                              active ? 'bg-primary-500 text-white' : 'text-gray-900'
+                            } group flex w-full items-center rounded-md px-2 py-2 text-sm`}
+                            onClick={() => setMobileMenuOpen(false)}
+                          >
+                            Your Profile
+                          </Link>
+                        )}
+                      </Menu.Item>
+                      <Menu.Item>
+                        {({ active }) => (
+                          <button
+                            onClick={() => {
+                              handleLogout();
+                              setMobileMenuOpen(false);
+                            }}
+                            className={`${
+                              active ? 'bg-primary-500 text-white' : 'text-gray-900'
+                            } group flex w-full items-center rounded-md px-2 py-2 text-sm text-left`}
+                          >
+                            Log out
+                          </button>
+                        )}
+                      </Menu.Item>
+                    </>
+                  ) : (
                     <>
                       <Menu.Item>
                         {({ active }) => (
@@ -143,7 +197,7 @@ export default function Navbar() {
                             to="/login"
                             className={`${
                               active ? 'bg-primary-500 text-white' : 'text-gray-900'
-                            } group flex w-full items-center rounded-md px-2 py-2 text-sm cursor-pointer`}
+                            } group flex w-full items-center rounded-md px-2 py-2 text-sm`}
                             onClick={() => setMobileMenuOpen(false)}
                           >
                             Sign in
@@ -156,7 +210,7 @@ export default function Navbar() {
                             to="/register"
                             className={`${
                               active ? 'bg-primary-500 text-white' : 'text-gray-900'
-                            } group flex w-full items-center rounded-md px-2 py-2 text-sm font-semibold cursor-pointer`}
+                            } group flex w-full items-center rounded-md px-2 py-2 text-sm font-semibold`}
                             onClick={() => setMobileMenuOpen(false)}
                           >
                             Get started
