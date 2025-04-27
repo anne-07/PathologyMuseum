@@ -135,9 +135,13 @@ router.delete('/:id', auth, adminOnly, async (req, res) => {
       });
     }
 
+    // Delete all bookmarks related to this specimen
+    const Bookmark = require('../models/Bookmark');
+    await Bookmark.deleteMany({ specimenId: specimen._id.toString(), type: 'specimen' });
+
     res.json({
       status: 'success',
-      message: 'Specimen deleted successfully'
+      message: 'Specimen and related bookmarks deleted successfully'
     });
   } catch (error) {
     res.status(400).json({
