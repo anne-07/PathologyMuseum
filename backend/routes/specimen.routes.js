@@ -64,10 +64,12 @@ router.get('/:id', async (req, res) => {
 // Create new specimen (auth required)
 router.post('/', auth, async (req, res) => {
   try {
+    console.log('Creating specimen with body:', req.body);
     const specimen = await Specimen.create({
       ...req.body,
       createdBy: req.user._id
     });
+    console.log('Created specimen:', specimen);
 
     res.status(201).json({
       status: 'success',
@@ -101,11 +103,13 @@ router.patch('/:id', auth, async (req, res) => {
       });
     }
 
+    console.log('Updating specimen', req.params.id, 'with body:', req.body);
     const updatedSpecimen = await Specimen.findByIdAndUpdate(
       req.params.id,
       req.body,
       { new: true, runValidators: true }
     ).populate('createdBy', 'username');
+    console.log('Updated specimen:', updatedSpecimen);
 
     res.json({
       status: 'success',

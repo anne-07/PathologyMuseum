@@ -18,6 +18,7 @@ import Contact from './pages/Contact';
 import Privacy from './pages/Privacy';
 import AdminPanel from './pages/AdminPanel';
 import Profile from './pages/Profile';
+import ForgotPassword from './pages/ForgotPassword';
 
 const router = createBrowserRouter([
   {
@@ -79,6 +80,10 @@ const router = createBrowserRouter([
       {
         path: "profile", 
         element: <Profile />,
+      },
+      {
+        path: "forgot-password",
+        element: <ForgotPassword />,
       },
     ],
   },

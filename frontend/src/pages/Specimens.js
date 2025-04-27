@@ -1,10 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect, useContext } from 'react';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { MagnifyingGlassIcon, FunnelIcon, Squares2X2Icon, ListBulletIcon } from '@heroicons/react/24/outline';
-
-
-
 import axios from 'axios';
+import { AuthContext } from '../context/AuthContext';
 
 const API_URL = 'http://localhost:5000/api';
 
@@ -15,6 +13,11 @@ const severityOptions = [
 ];
 
 export default function Specimens() {
+  const { isAuthenticated } = useContext(AuthContext);
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (!isAuthenticated) navigate('/login');
+  }, [isAuthenticated, navigate]);
   const [searchParams] = useSearchParams();
   // Only list mode for specimen preview
   const viewMode = 'list';

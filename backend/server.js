@@ -78,6 +78,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/specimens', specimenRoutes);
 app.use('/api/slides', slideRoutes);
 app.use('/api/filter-options', require('./routes/filterOption.routes'));
+app.use('/api/upload', require('./routes/upload.routes'));
 // app.use('/api/users', userRoutes);
 
 // Test route

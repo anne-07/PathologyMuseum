@@ -66,19 +66,6 @@ export default function LandingPage() {
             Learn Without Boundaries – Discover our comprehensive collection of pathological specimens and histological slides
           </p>
           
-          {/* Search Bar */}
-          <div className="mt-10 max-w-xl">
-            <div className="relative">
-              <input
-                type="text"
-                className="block w-full rounded-md border-0 px-4 py-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
-                placeholder="Search specimens, diseases, systems, or slides..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-          </div>
-
           {/* CTA Buttons */}
           <div className="mt-10 flex gap-x-6">
             <Link

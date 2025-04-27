@@ -18,44 +18,96 @@ export default function SpecimenForm({ specimen, onClose, filterOptions = {} }) 
   const [error, setError] = useState(null);
   const [uploading, setUploading] = useState(false);
 
-  // Cloudinary config
-  const CLOUDINARY_UPLOAD_PRESET = 'YOUR_UPLOAD_PRESET'; // TODO: Replace with your preset
-  const CLOUDINARY_CLOUD_NAME = 'YOUR_CLOUD_NAME'; // TODO: Replace with your cloud name
-
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // Helper for uploading files to Cloudinary
-  const uploadToCloudinary = async (file, resourceType = 'auto') => {
+  // Helper for uploading files to the backend
+  const uploadToBackend = async (file) => {
     setUploading(true);
-    const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`;
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
     try {
-      const res = await fetch(url, {
+      const res = await fetch('http://localhost:5000/api/upload', {
         method: 'POST',
         body: formData,
+        credentials: 'include', // if you need cookies/auth
       });
+      if (!res.ok) throw new Error('Upload failed');
       const data = await res.json();
-      return data.secure_url;
+      return data;
     } catch (err) {
-      setError('Image upload failed');
+      setError('File upload failed');
       return null;
     } finally {
       setUploading(false);
     }
   };
 
+  // Helper for deleting files from the backend
+  // Extract Cloudinary public_id from URL if not present
+  const extractPublicIdFromUrl = (url) => {
+    if (typeof url !== 'string') return null;
+    // Matches: .../upload/v12345/folder/filename.ext => folder/filename
+    const matches = url.match(/upload\/(?:v\d+\/)?(.+?)\.[a-zA-Z0-9]+$/);
+    return matches ? matches[1] : null;
+  };
+
+
+  const handleDeleteFile = async (public_id, url) => {
+    const idToDelete = public_id || extractPublicIdFromUrl(url);
+    if (!idToDelete) {
+      setError('No public_id found for deletion');
+      return;
+    }
+    try {
+      await fetch('http://localhost:5000/api/upload', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ public_id: idToDelete }),
+      });
+    } catch (err) {
+      setError('File deletion failed');
+    }
+  };
+
+  // Images
   const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files);
     const uploaded = [];
     for (const file of files) {
-      const url = await uploadToCloudinary(file, 'image');
-      if (url) uploaded.push({ url, type: 'Gross' });
+      const data = await uploadToBackend(file);
+      if (data) {
+        uploaded.push({ url: data.url, public_id: data.public_id, type: 'Gross' });
+      }
     }
     setForm(prev => ({ ...prev, images: [...prev.images, ...uploaded] }));
+  };
+
+  // Audio
+  const handleAudioUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    const uploaded = [];
+    for (const file of files) {
+      const data = await uploadToBackend(file);
+      if (data) {
+        uploaded.push({ url: data.url, public_id: data.public_id, caption: file.name });
+      }
+    }
+    setForm(prev => ({ ...prev, audio: [...prev.audio, ...uploaded] }));
+  };
+
+  // 3D Models
+  const handleModelUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    const uploaded = [];
+    for (const file of files) {
+      const data = await uploadToBackend(file);
+      if (data) {
+        uploaded.push({ url: data.url, public_id: data.public_id, caption: file.name });
+      }
+    }
+    setForm(prev => ({ ...prev, models3d: [...prev.models3d, ...uploaded] }));
   };
 
   const handleSubmit = async (e) => {
@@ -130,8 +182,19 @@ export default function SpecimenForm({ specimen, onClose, filterOptions = {} }) 
           <input type="file" accept="image/*" multiple onChange={handleImageUpload} disabled={uploading} />
           <div className="flex flex-wrap mt-2">
             {form.images.map((img, i) => (
-              <div key={i} className="mr-2 mb-2">
+              <div key={i} className="mr-2 mb-2 relative group">
                 <img src={img.url} alt="" className="h-16 w-16 object-cover rounded" />
+                <button
+                  type="button"
+                  className="absolute top-0 right-0 bg-white border border-red-500 text-red-600 rounded-full p-2 text-2xl font-bold shadow hover:bg-red-500 hover:text-white transition z-10"
+                  onClick={async () => {
+                    await handleDeleteFile(img.public_id, img.url);
+                    setForm(prev => ({ ...prev, images: prev.images.filter((_, idx) => idx !== i) }));
+                  }}
+                  aria-label="Remove image"
+                >
+                  ×
+                </button>
               </div>
             ))}
           </div>
@@ -140,20 +203,23 @@ export default function SpecimenForm({ specimen, onClose, filterOptions = {} }) 
         {/* Audio Upload */}
         <div className="mb-3">
           <label className="block text-sm font-medium mb-1">Audio Files</label>
-          <input type="file" accept="audio/*" multiple onChange={async (e) => {
-            const files = Array.from(e.target.files);
-            const uploaded = [];
-            for (const file of files) {
-              const url = await uploadToCloudinary(file, 'audio');
-              if (url) uploaded.push({ url, caption: file.name });
-            }
-            setForm(prev => ({ ...prev, audio: [...prev.audio, ...uploaded] }));
-          }} disabled={uploading} />
+          <input type="file" accept="audio/*" multiple onChange={handleAudioUpload} disabled={uploading} />
           <div className="flex flex-wrap mt-2">
             {form.audio.map((audio, i) => (
-              <div key={i} className="mr-2 mb-2 flex items-center">
+              <div key={i} className="mr-2 mb-2 flex items-center relative group">
                 <audio src={audio.url} controls className="h-8" />
                 <span className="ml-2 text-xs">{audio.caption || `Audio ${i+1}`}</span>
+                <button
+                  type="button"
+                  className="absolute -top-2 -right-2 bg-white border border-red-500 text-red-600 rounded-full p-1 text-lg font-bold shadow hover:bg-red-500 hover:text-white transition z-10"
+                  onClick={async () => {
+                    await handleDeleteFile(audio.public_id, audio.url);
+                    setForm(prev => ({ ...prev, audio: prev.audio.filter((_, idx) => idx !== i) }));
+                  }}
+                  aria-label="Remove audio"
+                >
+                  ×
+                </button>
               </div>
             ))}
           </div>
@@ -162,20 +228,23 @@ export default function SpecimenForm({ specimen, onClose, filterOptions = {} }) 
         {/* 3D Model Upload */}
         <div className="mb-3">
           <label className="block text-sm font-medium mb-1">3D Models</label>
-          <input type="file" accept=".glb,.gltf,.obj,.fbx" multiple onChange={async (e) => {
-            const files = Array.from(e.target.files);
-            const uploaded = [];
-            for (const file of files) {
-              const url = await uploadToCloudinary(file, 'auto');
-              if (url) uploaded.push({ url, caption: file.name });
-            }
-            setForm(prev => ({ ...prev, models3d: [...prev.models3d, ...uploaded] }));
-          }} disabled={uploading} />
+          <input type="file" accept=".glb,.gltf,.obj,.fbx" multiple onChange={handleModelUpload} disabled={uploading} />
           <div className="flex flex-wrap mt-2">
             {form.models3d.map((model, i) => (
-              <div key={i} className="mr-2 mb-2 flex items-center">
+              <div key={i} className="mr-2 mb-2 flex items-center relative group">
                 <span className="inline-block w-8 h-8 bg-gray-200 rounded text-center leading-8">3D</span>
                 <span className="ml-2 text-xs">{model.caption || `Model ${i+1}`}</span>
+                <button
+                  type="button"
+                  className="absolute -top-2 -right-2 bg-white border border-red-500 text-red-600 rounded-full p-1 text-lg font-bold shadow hover:bg-red-500 hover:text-white transition z-10"
+                  onClick={async () => {
+                    await handleDeleteFile(model.public_id, model.url);
+                    setForm(prev => ({ ...prev, models3d: prev.models3d.filter((_, idx) => idx !== i) }));
+                  }}
+                  aria-label="Remove 3D model"
+                >
+                  ×
+                </button>
               </div>
             ))}
           </div>

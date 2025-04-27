@@ -141,23 +141,26 @@ export default function Navbar() {
 
               <Menu.Items className="absolute right-0 mt-2 w-56 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                 <div className="px-1 py-1">
-                  {navigation.map((item) => (
-                    <Menu.Item key={item.name}>
-                      {({ active }) => (
-                        <Link
-                          to={item.href}
-                          className={`${
-                            active ? 'bg-primary-500 text-white' : 'text-gray-900'
-                          } group flex w-full items-center rounded-md px-2 py-2 text-sm cursor-pointer ${
-                            isActive(item.href) ? 'bg-primary-50' : ''
-                          }`}
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          {item.name}
-                        </Link>
-                      )}
-                    </Menu.Item>
-                  ))}
+                  {navigation.map((item) => {
+                    if (item.adminOnly && (!isAuthenticated || !user || user.role !== 'admin')) return null;
+                    return (
+                      <Menu.Item key={item.name}>
+                        {({ active }) => (
+                          <Link
+                            to={item.href}
+                            className={`${
+                              active ? 'bg-primary-500 text-white' : 'text-gray-900'
+                            } group flex w-full items-center rounded-md px-2 py-2 text-sm cursor-pointer ${
+                              isActive(item.href) ? 'bg-primary-50' : ''
+                            }`}
+                            onClick={() => setMobileMenuOpen(false)}
+                          >
+                            {item.name}
+                          </Link>
+                        )}
+                      </Menu.Item>
+                    );
+                  })}
                   {isAuthenticated ? (
                     <>
                       <Menu.Item>

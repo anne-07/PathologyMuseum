@@ -1,6 +1,15 @@
 import React from 'react';
 
+import { useContext, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '../context/AuthContext';
+
 export default function Slides() {
+  const { isAuthenticated } = useContext(AuthContext);
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (!isAuthenticated) navigate('/login');
+  }, [isAuthenticated, navigate]);
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold text-gray-900 mb-8">Digital Slides</h1>
