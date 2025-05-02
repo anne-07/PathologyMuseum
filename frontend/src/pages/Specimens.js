@@ -67,17 +67,6 @@ export default function Specimens() {
     return () => window.removeEventListener('storage', onStorage);
   }, []);
 
-  // Add new filter option
-  const addFilterOption = async (type) => {
-    if (!newFilter[type].trim()) return;
-    try {
-      await axios.post(`${API_URL}/filter-options`, { type, value: newFilter[type].trim() });
-      setNewFilter(f => ({ ...f, [type]: '' }));
-      fetchFilterOptions();
-    } catch (err) {
-      alert('Failed to add filter option: ' + (err.response?.data?.message || err.message));
-    }
-  };
 
   // Helper to build query string
   const buildQuery = () => {
@@ -189,19 +178,19 @@ export default function Specimens() {
                       {!filterLoading && filterOptions[category]?.length === 0 && (
                         <div className="text-xs text-gray-400">No options yet.</div>
                       )}
-                      {(filterOptions[category] || []).map((option) => (
-                        <label key={option} className="flex items-center">
-                          <input
-                            type="radio"
-                            name={category}
-                            value={option}
-                            checked={activeFilters[category] === option}
-                            onChange={(e) => handleFilterChange(category, e.target.value)}
-                            className="h-4 w-4 text-primary-600 focus:ring-primary-500"
-                          />
-                          <span className="ml-2 text-sm text-gray-600">{option}</span>
-                        </label>
-                      ))}
+                      <select
+                        name={category}
+                        value={activeFilters[category]}
+                        onChange={(e) => handleFilterChange(category, e.target.value)}
+                        className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                      >
+                        <option value=""> Select </option>
+                        {(filterOptions[category] || []).map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                 ))}

@@ -166,7 +166,7 @@ export default function LandingPage() {
             Explore the Virtual Pathology Museum
           </h1>
           <p className="mt-6 max-w-3xl text-xl text-gray-100">
-            Learn Without Boundaries – Discover our comprehensive collection of pathological specimens and histological slides
+            Learn Without Boundaries – Discover our comprehensive collection of pathological specimens
           </p>
           
           {/* CTA Buttons */}
