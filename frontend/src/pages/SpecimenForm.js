@@ -7,8 +7,7 @@ export default function SpecimenForm({ specimen, onClose, filterOptions = {} }) 
     description: specimen?.description || '',
     organ: specimen?.organ || '',
     system: specimen?.system || '',
-    diagnosis: specimen?.diagnosis || '',
-    category: specimen?.category || '',
+    diseaseCategory: specimen?.diseaseCategory || '',
     status: specimen?.status || 'published',
     images: specimen?.images || [],
     audio: specimen?.audio || [],
@@ -162,12 +161,8 @@ export default function SpecimenForm({ specimen, onClose, filterOptions = {} }) 
           <input name="system" value={form.system} onChange={handleChange} className="w-full border rounded px-3 py-2" placeholder="System" required />
         </div>
         <div className="mb-3">
-          <label className="block text-sm font-medium mb-1">Category</label>
-          <input name="category" value={form.category} onChange={handleChange} className="w-full border rounded px-3 py-2" placeholder="Category" required />
-        </div>
-        <div className="mb-3">
-          <label className="block text-sm font-medium mb-1">Diagnosis</label>
-          <input name="diagnosis" value={form.diagnosis} onChange={handleChange} className="w-full border rounded px-3 py-2" placeholder="Diagnosis" required />
+          <label className="block text-sm font-medium mb-1"> Disease Category</label>
+          <input name="diseaseCategory" value={form.diseaseCategory} onChange={handleChange} className="w-full border rounded px-3 py-2" placeholder="Disease Category" required />
         </div>
         <div className="mb-3">
           <label className="block text-sm font-medium mb-1">Status</label>

@@ -4,7 +4,7 @@ const filterOptionSchema = new mongoose.Schema({
   type: {
     type: String,
     required: true,
-    enum: ['category', 'organ', 'system', 'diagnosis'],
+    enum: ['organ', 'system','diseaseCategory'],
   },
   value: {
     type: String,

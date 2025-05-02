@@ -6,11 +6,7 @@ import { AuthContext } from '../context/AuthContext';
 
 const API_URL = 'http://localhost:5000/api';
 
-const severityOptions = [
-  { value: 'mild', label: 'Mild' },
-  { value: 'moderate', label: 'Moderate' },
-  { value: 'severe', label: 'Severe' },
-];
+
 
 export default function Specimens() {
   const { isAuthenticated } = useContext(AuthContext);
@@ -25,10 +21,8 @@ export default function Specimens() {
   const [filteredSpecimens, setFilteredSpecimens] = useState([]);
   const [activeFilters, setActiveFilters] = useState({
     system: searchParams.get('system') || '',
-    severity: '',
     organ: '',
-    category: '',
-    diagnosis: '',
+    diseaseCategory: '',
   });
   const [specimens, setSpecimens] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -36,21 +30,21 @@ export default function Specimens() {
 
   // Dynamic filter options
   const [filterOptions, setFilterOptions] = useState({
-    category: [],
+
     organ: [],
     system: [],
-    diagnosis: [],
+    diseaseCategory: [],
   });
   const [filterLoading, setFilterLoading] = useState(false);
   const [filterError, setFilterError] = useState(null);
-  const [newFilter, setNewFilter] = useState({ category: '', organ: '', system: '', diagnosis: '' });
+  const [newFilter, setNewFilter] = useState({ organ: '', system: '',diseaseCategory: '' });
 
   // Fetch filter options from backend
   const fetchFilterOptions = async () => {
     setFilterLoading(true);
     setFilterError(null);
     try {
-      const types = ['category', 'organ', 'system', 'diagnosis'];
+      const types = [ 'organ', 'system','diseaseCategory'];
       const results = await Promise.all(types.map(type => axios.get(`${API_URL}/filter-options?type=${type}`)));
       const newOptions = {};
       types.forEach((type, i) => {
@@ -89,10 +83,11 @@ export default function Specimens() {
   const buildQuery = () => {
     const params = [];
     if (activeFilters.system) params.push(`system=${encodeURIComponent(activeFilters.system)}`);
-    if (activeFilters.severity) params.push(`severity=${encodeURIComponent(activeFilters.severity)}`);
+    if (activeFilters.diseaseCategory) params.push(`diseaseCategory=${encodeURIComponent(activeFilters.diseaseCategory)}`);
     if (activeFilters.organ) params.push(`organ=${encodeURIComponent(activeFilters.organ)}`);
-    if (activeFilters.category) params.push(`category=${encodeURIComponent(activeFilters.category)}`);
-    if (activeFilters.diagnosis) params.push(`diagnosis=${encodeURIComponent(activeFilters.diagnosis)}`);
+    
+    // Add search query if present
+    if (searchQuery) params.push(`search=${encodeURIComponent(searchQuery)}`);
 
     return params.length ? `?${params.join('&')}` : '';
   };
@@ -103,23 +98,32 @@ export default function Specimens() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`/api/specimens${buildQuery()}`);
-        if (!res.ok) throw new Error('Failed to fetch specimens');
-        const data = await res.json();
-        setSpecimens(data.data.specimens || []);
+        const response = await axios.get(`${API_URL}/specimens${buildQuery()}`);
+        if (response.data && response.data.data && response.data.data.specimens) {
+          setSpecimens(response.data.data.specimens);
+          setFilteredSpecimens(response.data.data.specimens);
+        } else {
+          setSpecimens([]);
+          setFilteredSpecimens([]);
+        }
       } catch (err) {
-        setError(err.message);
+        console.error('Error fetching specimens:', err);
+        setError(err.response?.data?.message || 'Failed to fetch specimens');
         setSpecimens([]);
+        setFilteredSpecimens([]);
       } finally {
         setLoading(false);
       }
     };
     fetchSpecimens();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeFilters.system, activeFilters.severity, activeFilters.organ]);
+  }, [activeFilters.system, activeFilters.diseaseCategory, activeFilters.organ]);
 
   // Filter specimens by name in real-time
   useEffect(() => {
+    if (!specimens) {
+      setFilteredSpecimens([]);
+      return;
+    }
     if (!searchQuery) {
       setFilteredSpecimens(specimens);
     } else {
@@ -148,7 +152,7 @@ export default function Specimens() {
 
   // Clear all filters and search
   const handleClearAll = () => {
-    setActiveFilters({ system: '', severity: '', organ: '', category: '', diagnosis: '' });
+    setActiveFilters({ system: '', organ: '', diseaseCategory: '' });
     setSearchQuery('');
   };
 
@@ -171,10 +175,15 @@ export default function Specimens() {
                 Filters
               </h2>
               <div className="mt-6 space-y-6">
-                {/* Dynamic filters: category, organ, system, diagnosis */}
-                {['category', 'organ', 'system', 'diagnosis'].map((category) => (
+                {/* Dynamic filters:  organ, system , diseaseCategory*/}
+                {[ 'organ', 'system','diseaseCategory'].map((category) => (
                   <div key={category} className="mb-4">
-                    <h3 className="text-sm font-medium text-gray-900 capitalize">{category}</h3>
+                    <h3 className="text-sm font-medium text-gray-900">
+                      {category === 'diseaseCategory' ? 'Disease Category' : 
+                       category === 'organ' ? 'Organ' : 
+                       category === 'system' ? 'System' : 
+                       category}
+                    </h3>
                     <div className="mt-2 space-y-2 min-h-[36px]">
                       {filterLoading && <div className="text-xs text-gray-400">Loading...</div>}
                       {!filterLoading && filterOptions[category]?.length === 0 && (
@@ -237,7 +246,7 @@ export default function Specimens() {
                   </span>
                 ) : null
               ))}
-              {(activeFilters.system || activeFilters.severity || activeFilters.organ || searchQuery) && (
+              {(activeFilters.system || activeFilters.diseaseCategory || activeFilters.organ || searchQuery) && (
                 <button
                   className="inline-flex items-center rounded-full bg-gray-200 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-300 ml-2"
                   onClick={handleClearAll}
@@ -263,11 +272,11 @@ export default function Specimens() {
                       <h3 className="text-lg font-semibold text-gray-900">{specimen.title}</h3>
                       {specimen.system && (
                         <div className="text-xs text-primary-700 font-medium mb-1">
-                          {specimen.system}
+                          System: {specimen.system}
                         </div>
                       )}
                       <div className="text-sm text-gray-600">Organ: {specimen.organ}</div>
-                      <div className="text-sm text-gray-600">Diagnosis: {specimen.diagnosis}</div>
+                      <div className="text-sm text-gray-600">Disease Category: {specimen.diseaseCategory}</div>
                       <div className="text-xs text-gray-400">{new Date(specimen.createdAt).toLocaleDateString()}</div>
                     </div>
                     <div className="mt-2 sm:mt-0 flex flex-col gap-2 items-start sm:items-end">

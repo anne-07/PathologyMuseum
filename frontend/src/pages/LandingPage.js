@@ -1,29 +1,132 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import axios from 'axios';
 
-const bodySystems = [
+const API_URL = 'http://localhost:5000/api';
+
+const initialBodySystems = [
   {
-    id: 'female-genital',
-    name: 'Female Genital System',
-    imageUrl: 'https://plus.unsplash.com/premium_photo-1674086619163-54bd6379f538?q=80&w=1975&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-    count: 12,
+    id: 'General',
+    name: 'General Pathology',
+    imageUrl: 'https://img.freepik.com/premium-photo/human-body-with-blue-background-that-says-human-anatomy_130714-4503.jpg',
+    count: 0,
   },
   {
-    id: 'nervous',
-    name: 'Nervous System',
-    imageUrl: 'https://plus.unsplash.com/premium_photo-1674086619163-54bd6379f538?q=80&w=1975&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-    count: 8,
+    id: 'Female Genital',
+    name: 'Female Genital Tract',
+    imageUrl: 'https://media.gettyimages.com/id/1682989686/vector/female-reproductive-organs-illustration.jpg?s=612x612&w=0&k=20&c=yRkD2P9BOGFGxIBS5g-yyJaL1TIgBR0KC28dC7wzbr4=',
+    count: 0,
   },
   {
-    id: 'cardiovascular',
+    id: 'Head and Neck',
+    name: 'Head and Neck',
+    imageUrl: 'https://www.healthxchange.sg/sites/hexassets/Assets/head-neck/how-to-take-care-of-nervous-system.jpg',
+    count: 0,
+  },
+  {
+    id: 'Cardiovascular',
     name: 'Cardiovascular System',
-    imageUrl: 'https://plus.unsplash.com/premium_photo-1674086619163-54bd6379f538?q=80&w=1975&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-    count: 15,
+    imageUrl: 'https://www.shutterstock.com/image-illustration/3d-rendered-medical-illustration-male-600nw-2256981889.jpg',
+    count: 0,
+  },
+  {
+    id: 'Respiratory',
+    name: 'Respiratory System',
+    imageUrl: 'https://img.freepik.com/premium-photo/human-respiratory-system-lungs-anatomy-3d-illustration_1302875-22727.jpg',
+    count: 0,
+  },
+  {
+    id: 'Hepatobiliary',
+    name: 'Hepatobiliary system',
+    imageUrl: 'https://t3.ftcdn.net/jpg/05/47/99/04/360_F_547990421_TsWtvbI2WL5wHU1aArXE7vcprk8BkU5p.jpg',
+    count: 0,
+  },
+  {
+    id: 'Male Genital',
+    name: 'Male Genital Tract',
+    imageUrl: 'https://www.shutterstock.com/shutterstock/videos/1097590213/thumb/1.jpg?ip=x480',
+    count: 0,
+  },
+  {
+    id: 'Kidney and Lower Urinary',
+    name: 'Kidney and Lower Urinary Tract',
+    imageUrl: 'https://st4.depositphotos.com/6563466/38183/i/450/depositphotos_381839760-stock-photo-human-urinary-system-bladder-anatomy.jpg',
+    count: 0,
+  },
+  {
+    id: 'Breast',
+    name: 'Breast',
+    imageUrl: 'https://www.shutterstock.com/image-illustration/3d-rendered-medically-accurate-illustration-600nw-1186974508.jpg',
+    count: 0,
+  },
+  {
+    id: 'Gastrointestinal',
+    name: 'Gastrointestinal system',
+    imageUrl: 'https://exam.kku.ac.th/pluginfile.php/81176/course/overviewfiles/Gastrointestinal%20System.jpg',
+    count: 0,
+  },
+  {
+    id: 'Bone and Soft tissue',
+    name: 'Bone and Soft tissue',
+    imageUrl: 'https://lh3.googleusercontent.com/proxy/l8Y9OB6lieOhdKAayEM1Xc-nbKj3yfIpY9ZM8ZAhfdlqe47qaFphr8bYWoRj2Qvl2FgGxhPBQ1vxeK723TkLt_X48o9YOriFpT25',
+    count: 0,
+  },
+  {
+    id: 'Miscellaneous',
+    name: 'Miscellaneous',
+    imageUrl: 'https://img.freepik.com/premium-photo/human-body-with-blue-background-that-says-human-anatomy_130714-4503.jpg',
+    count: 0,
   },
 ];
 
 export default function LandingPage() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [bodySystems, setBodySystems] = useState(initialBodySystems);
+
+  // Fetch specimen counts for each system
+  useEffect(() => {
+    const fetchSpecimenCounts = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/specimens`);
+        if (!response.data || !response.data.data || !response.data.data.specimens) {
+          console.error('Invalid response format:', response.data);
+          return;
+        }
+
+        const specimens = response.data.data.specimens;
+        if (!Array.isArray(specimens)) {
+          console.error('Specimens data is not an array:', specimens);
+          return;
+        }
+
+        // Count specimens for each system
+        const systemCounts = {};
+        specimens.forEach(specimen => {
+          if (specimen && specimen.system) {
+            systemCounts[specimen.system] = (systemCounts[specimen.system] || 0) + 1;
+          }
+        });
+
+        console.log('System counts:', systemCounts); // Debug log
+
+        // Update body systems with counts
+        setBodySystems(prevSystems => 
+          prevSystems.map(system => {
+            const count = systemCounts[system.id] || 0;
+            console.log(`Count for ${system.id}:`, count); // Debug log
+            return {
+              ...system,
+              count
+            };
+          })
+        );
+      } catch (error) {
+        console.error('Error fetching specimen counts:', error);
+      }
+    };
+
+    fetchSpecimenCounts();
+  }, []);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -89,19 +192,43 @@ export default function LandingPage() {
         <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
           Explore by Body System
         </h2>
-        <div className="mt-10 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {bodySystems.map((system) => (
             <Link
               key={system.id}
               to={`/specimens?system=${system.id}`}
               className="relative overflow-hidden rounded-lg group"
             >
-              <div className="aspect-w-3 aspect-h-2">
-                <img
-                  src={system.imageUrl}
-                  alt={system.name}
-                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                />
+              <div className="w-full h-full overflow-hidden">
+                <div className="relative w-full pb-[100%]">
+                  <img
+                    src={system.imageUrl}
+                    alt={system.name}
+                    className="absolute top-0 left-0 w-full h-full object-cover"
+                    style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', minWidth: '100%', minHeight: '100%', width: 'auto', height: 'auto' }}
+                    onLoad={(e) => {
+                      console.log(`Image loaded successfully: ${system.name}`);
+                    }}
+                    onError={(e) => {
+                      console.error(`Failed to load primary image for ${system.name}:`, {
+                        url: system.imageUrl,
+                        alt: system.name
+                      });
+                      
+                      // Try backup URLs
+                      if (system.backupUrls && system.backupUrls.length > 0) {
+                        const backupUrl = system.backupUrls.shift();
+                        console.log(`Attempting backup URL: ${backupUrl}`);
+                        e.target.src = backupUrl;
+                      } else {
+                        // Final fallback
+                        e.target.src = `https://via.placeholder.com/400x400.png?text=${encodeURIComponent(system.name)}`;
+                        e.target.style.objectFit = 'cover';
+                        e.target.style.backgroundColor = '#f3f4f6';
+                      }
+                    }}
+                  />
+                </div>
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-black/0" />
               </div>
               <div className="absolute bottom-0 p-6">

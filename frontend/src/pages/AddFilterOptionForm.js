@@ -16,7 +16,7 @@ export default function AddFilterOptionForm({ type, onAdd }) {
         type="text"
         value={value}
         onChange={e => setValue(e.target.value)}
-        placeholder={`Add new ${type}`}
+        placeholder={`Add new ${type === 'diseaseCategory' ? 'Disease Category' : type}`}
         className="border rounded px-2 py-1 text-sm"
       />
       <button type="submit" className="text-xs bg-primary-600 text-white rounded px-2 py-1">Add</button>

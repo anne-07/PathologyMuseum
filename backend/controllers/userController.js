@@ -9,7 +9,7 @@ const { generateToken } = require('../utils/generateToken')
 // @access Public
 const registerUser = asyncHandler( async (req,res) => {
   try {
-    const { username, email, password, role } = req.body;
+    const { username, email, password, role, adminCode } = req.body;
 
     if (!username || !email || !password) {
       return res.status(400).json({
@@ -77,28 +77,65 @@ const registerUser = asyncHandler( async (req,res) => {
 // @Desc Authenticate new user
 // @route POST /api/auth/login
 // @access Public
-const loginUser = asyncHandler( async (req,res) => {
+const loginUser = asyncHandler(async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, role, adminCode } = req.body;
+    console.log('Login attempt:', { email, role, adminCode }); // Debug log
 
-    // Check if user and password exists
+    // Check if user exists
     const user = await User.findOne({ email });
-    if (!user || !(await user.comparePassword(password))) {
+    if (!user) {
       return res.status(401).json({ 
         status: 'error', 
-        message: 'Invalid credentials' 
+        message: 'Invalid email or password' 
       });
     }
 
-    //Generate JWT token
+    // Check password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ 
+        status: 'error', 
+        message: 'Invalid email or password' 
+      });
+    }
+
+    // Check if the requested role matches user's role
+    if (role && role !== user.role) {
+      return res.status(403).json({
+        status: 'error',
+        message: `You are not registered as a ${role}`
+      });
+    }
+
+    // If role is admin, verify admin code
+    if (role === 'admin') {
+      const ADMIN_CODE = '1111'; // Hardcoded admin code
+      
+      if (!adminCode) {
+        return res.status(403).json({
+          status: 'error',
+          message: 'Admin code is required'
+        });
+      }
+
+      if (adminCode !== ADMIN_CODE) {
+        return res.status(403).json({
+          status: 'error',
+          message: 'Invalid admin code'
+        });
+      }
+    }
+
+    // Generate JWT token
     const token = jwt.sign(
       { id: user._id, role: user.role },
-      process.env.JWT_SECRET || 'your-secret-key',
+      process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
-    
-    
-    //generateToken(res, user._id);
+
+    console.log('Login successful for:', email); // Debug log
+
     res.status(200).json({
       status: 'success',
       data: {
@@ -111,7 +148,6 @@ const loginUser = asyncHandler( async (req,res) => {
         }
       }
     });
-    
   } catch (error) {
     console.error('Login error:', error);
     res.status(400).json({
@@ -188,9 +224,15 @@ const updateUserProfile = asyncHandler( async (req,res) => {
     const updatedUser = await user.save();
     
     res.status(200).json({
-      _id: updatedUser._id,
-      username: updatedUser.username,
-      email: updatedUser.email
+      status: 'success',
+      data: {
+        user: {
+          id: updatedUser._id,
+          username: updatedUser.username,
+          email: updatedUser.email,
+          role: updatedUser.role
+        }
+      }
     });
   }else{
     res.status(404);
@@ -204,15 +246,40 @@ const updateUserProfile = asyncHandler( async (req,res) => {
 
 // generate JWT 
 // const generateToken = (id) => {
-//   return jwt.sign({ id }, process.env.JWT_SECRET, {
-//     expiresIn: '24h',
-//   })
-// }
+
+// @desc Check if a user is an admin
+// @route GET /api/auth/check-role/:email
+// @access Public
+const checkUserRole = asyncHandler(async (req, res) => {
+  try {
+    const { email } = req.params;
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'User not found'
+      });
+    }
+
+    res.json({
+      status: 'success',
+      role: user.role
+    });
+  } catch (error) {
+    console.error('Check role error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: error.message || 'Error checking user role'
+    });
+  }
+});
 
 module.exports = {
   registerUser,
   loginUser,
   userDataProfile,
   logoutUser,
-  updateUserProfile
-}
+  updateUserProfile,
+  checkUserRole
+};

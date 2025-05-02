@@ -13,6 +13,7 @@ export default function Register() {
     password: '',
     confirmPassword: '',
     role: 'student',
+    adminCode: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -43,13 +44,26 @@ export default function Register() {
       return;
     }
 
+    // Check admin code if registering as admin
+    if (formData.role === 'admin') {
+      if (!formData.adminCode) {
+        setError('Admin code is required for admin registration');
+        return;
+      }
+      if (formData.adminCode !== '1111') { // Hardcoded admin code
+        setError('Invalid admin code');
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       const response = await axios.post(`${API_URL}/auth/register`, {
         username: formData.name,
         email: formData.email,
         password: formData.password,
-        role: formData.role
+        role: formData.role,
+        adminCode: formData.adminCode
       });
 
       if (response.data.status === 'success') {
@@ -218,12 +232,36 @@ export default function Register() {
                     className="block w-full rounded-md border-0 py-1.5 pl-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                   >
                     <option value="student">Student</option>
-                    <option value="teacher">Teacher</option>
-                    <option value="researcher">Researcher</option>
                     <option value="admin">Admin</option>
                   </select>
                 </div>
               </div>
+
+              {formData.role === 'admin' && (
+                <div>
+                  <label
+                    htmlFor="adminCode"
+                    className="block text-sm font-medium leading-6 text-gray-900"
+                  >
+                    Admin Code
+                  </label>
+                  <div className="relative mt-2">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                      <LockClosedIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                    </div>
+                    <input
+                      id="adminCode"
+                      name="adminCode"
+                      type="password"
+                      value={formData.adminCode}
+                      onChange={handleChange}
+                      className="block w-full rounded-md border-0 py-1.5 pl-10 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                      placeholder="Enter admin verification code"
+                      required={formData.role === 'admin'}
+                    />
+                  </div>
+                </div>
+              )}
 
               <div>
                 <button

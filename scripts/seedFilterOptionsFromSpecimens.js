@@ -11,8 +11,8 @@ async function main() {
   await mongoose.connect(MONGO_URI);
   const specimens = await Specimen.find();
 
-  const types = ['category', 'organ', 'system', 'diagnosis'];
-  const valuesByType = { category: new Set(), organ: new Set(), system: new Set(), diagnosis: new Set() };
+  const types = [, 'organ', 'system', 'diseaseCategory'];
+  const valuesByType = {  organ: new Set(), system: new Set(), diseaseCategory: new Set() };
 
   for (const specimen of specimens) {
     types.forEach(type => {

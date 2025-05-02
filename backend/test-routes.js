@@ -54,11 +54,8 @@ const testRoutes = async () => {
       title: 'Test Specimen',
       description: 'Test Description',
       organ: 'Liver',
-      diagnosis: 'Normal',
-      clinicalHistory: 'Test History',
-      grossFeatures: 'Test Gross',
-      microscopicFeatures: 'Test Microscopic',
-      category: 'Non-neoplastic'
+      system: 'Female Genital',
+      diseaseCategory: 'Normal',
     }, {
       headers: { Authorization: `Bearer ${authToken}` }
     });

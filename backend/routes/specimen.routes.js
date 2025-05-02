@@ -13,11 +13,9 @@ router.get('/', async (req, res) => {
   try {
     // Build filter object from query params
     const filter = {};
-    if (req.query.category) filter.category = req.query.category;
+    if (req.query.diseaseCategory) filter.diseaseCategory = req.query.diseaseCategory;
     if (req.query.organ) filter.organ = req.query.organ;
-    if (req.query.diagnosis) filter.diagnosis = req.query.diagnosis;
     if (req.query.system) filter.system = req.query.system;
-    // if (req.query.severity) filter.severity = req.query.severity;
 
     const specimens = await Specimen.find(filter)
       .populate('createdBy', 'username')
@@ -159,7 +157,7 @@ router.get('/search/:query', async (req, res) => {
       $or: [
         { title: { $regex: searchQuery, $options: 'i' } },
         { description: { $regex: searchQuery, $options: 'i' } },
-        { diagnosis: { $regex: searchQuery, $options: 'i' } },
+        { diseaseCategory: { $regex: searchQuery, $options: 'i' } },
         { organ: { $regex: searchQuery, $options: 'i' } }
       ]
     }).populate('createdBy', 'username');

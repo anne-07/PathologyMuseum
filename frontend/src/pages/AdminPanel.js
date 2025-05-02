@@ -16,20 +16,19 @@ export default function AdminPanel() {
 
   // --- Filter Option Management State and Logic ---
   const [filterOptions, setFilterOptions] = useState({
-    category: [],
     organ: [],
     system: [],
-    diagnosis: [],
+    diseaseCategory: [],
   });
   const [filterLoading, setFilterLoading] = useState(false);
   const [filterError, setFilterError] = useState(null);
-  const [newFilter, setNewFilter] = useState({ category: '', organ: '', system: '', diagnosis: '' });
+  const [newFilter, setNewFilter] = useState({  organ: '', system: '',diseaseCategory: ''});
 
   const fetchFilterOptions = async () => {
     setFilterLoading(true);
     setFilterError(null);
     try {
-      const types = ['category', 'organ', 'system', 'diagnosis'];
+      const types = [ 'organ', 'system', 'diseaseCategory'];
       const results = await Promise.all(types.map(type => axios.get(`${API_URL}/filter-options?type=${type}`)));
       const newOptions = {};
       types.forEach((type, i) => {
@@ -135,13 +134,13 @@ export default function AdminPanel() {
     fetchSpecimens();
   };
 
-  // Filter specimens by search query (case insensitive, match title, diagnosis, organ)
+  // Filter specimens by search query (case insensitive, match title, diseaseCategory, organ)
   const filteredSpecimens = specimens.filter(specimen => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return true;
     return (
       (specimen.title && specimen.title.toLowerCase().includes(q)) ||
-      (specimen.diagnosis && specimen.diagnosis.toLowerCase().includes(q)) ||
+      (specimen.diseaseCategory && specimen.diseaseCategory.toLowerCase().includes(q)) ||
       (specimen.organ && specimen.organ.toLowerCase().includes(q))
     );
   });
@@ -221,9 +220,9 @@ export default function AdminPanel() {
               {filterError && <div className="text-red-500 mb-2">{filterError}</div>}
               {filterLoading ? <div>Loading filter options...</div> : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {['category', 'organ', 'system', 'diagnosis'].map(type => (
+                  {['organ', 'system', 'diseaseCategory'].map(type => (
                     <div key={type} className="border rounded p-4 bg-white shadow">
-                      <h4 className="font-bold mb-3 capitalize">{type}</h4>
+                      <h4 className="font-bold mb-3">{type === 'diseaseCategory' ? 'Disease Category' : type.charAt(0).toUpperCase() + type.slice(1)}</h4>
                       <ul className="mb-3 min-h-[40px]">
                         {filterOptions[type]?.length === 0 && <li className="text-xs text-gray-400">No options yet.</li>}
                         {filterOptions[type]?.map(opt => (

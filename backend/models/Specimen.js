@@ -25,15 +25,9 @@ const specimenSchema = new mongoose.Schema({
     required: [true, 'System is required'],
     trim: true
   },
-  diagnosis: {
+  diseaseCategory: {
     type: String,
-    required: [true, 'Diagnosis is required'],
-    trim: true
-  },
-  
-  category: {
-    type: String,
-    required: [true, 'Category is required'],
+    required: [true, 'Disease Category is required'],
     trim: true
   },
   images: [{
