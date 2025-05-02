@@ -267,19 +267,19 @@ export default function LandingPage() {
                       <svg className="h-6 w-5 flex-none text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                       </svg>
-                      <span>High-resolution specimen images</span>
+                      <span>Interactive 3D specimen exploration for immersive learning</span>
                     </li>
                     <li className="flex gap-x-3">
                       <svg className="h-6 w-5 flex-none text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                       </svg>
-                      <span>Interactive slide viewer</span>
+                      <span>Audio descriptions to enhance understanding</span>
                     </li>
                     <li className="flex gap-x-3">
                       <svg className="h-6 w-5 flex-none text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                       </svg>
-                      <span>Expert audio descriptions</span>
+                      <span>Learn pathology anytime, anywhere — no need to visit the museum</span>
                     </li>
                   </ul>
                 </dd>

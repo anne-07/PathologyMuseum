@@ -138,7 +138,7 @@ const quickLinks = [
             </div>
           </div>
 
-          {/* Explore by Body System */}
+          {/* Recently Viewed Body System */}
           <div className="mt-12">
             <h3 className="text-lg font-medium leading-6 text-gray-900">Explore by Body System</h3>
             <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
@@ -148,19 +148,29 @@ const quickLinks = [
                 (() => {
                   // Mapping from system name to image URL
                   const systemImages = {
-                    Cardiovascular: 'https://images.unsplash.com/photo-1512069772995-ec65ed45afd6?auto=format&fit=crop&w=400&q=80', // Heart
-                    Respiratory: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80', // Lungs
-                    Nervous: 'https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=400&q=80', // Brain
-                    Digestive: 'https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=400&q=80', // Digestive
-                    Musculoskeletal: 'https://images.unsplash.com/photo-1424986620741-8822bcc7c3a5?auto=format&fit=crop&w=400&q=80', // Skeleton
-                    Renal: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80', // Kidneys
-                    Endocrine: 'https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=400&q=80', // Endocrine
-                    Lymphatic: 'https://images.unsplash.com/photo-1465101178521-c1a9136a3c8a?auto=format&fit=crop&w=400&q=80', // Lymphatic
-                    Integumentary: 'https://images.unsplash.com/photo-1465101178521-c1a9136a3c8a?auto=format&fit=crop&w=400&q=80', // Skin
-                    Reproductive: 'https://images.unsplash.com/photo-1510626176961-4b57d4fbad04?auto=format&fit=crop&w=400&q=80', // Reproductive
-                    Immune: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80', // Immune
+                    Cardiovascular: 'https://www.shutterstock.com/image-illustration/3d-rendered-medical-illustration-male-600nw-2256981889.jpg', // Heart
+                    Respiratory: 'https://img.freepik.com/premium-photo/human-respiratory-system-lungs-anatomy-3d-illustration_1302875-22727.jpg', // Lungs
+                    //Nervous: 'https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=400&q=80', // Brain
+                    //Digestive: 'https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=400&q=80', // Digestive
+                    //Musculoskeletal: 'https://images.unsplash.com/photo-1424986620741-8822bcc7c3a5?auto=format&fit=crop&w=400&q=80', // Skeleton
+                    //Renal: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80', // Kidneys
+                    //Endocrine: 'https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=400&q=80', // Endocrine
+                    //Lymphatic: 'https://images.unsplash.com/photo-1465101178521-c1a9136a3c8a?auto=format&fit=crop&w=400&q=80', // Lymphatic
+                    //Integumentary: 'https://images.unsplash.com/photo-1465101178521-c1a9136a3c8a?auto=format&fit=crop&w=400&q=80', // Skin
+                    //Reproductive: 'https://media.gettyimages.com/id/1682989686/vector/female-reproductive-organs-illustration.jpg?s=612x612&w=0&k=20&c=yRkD2P9BOGFGxIBS5g-yyJaL1TIgBR0KC28dC7wzbr4=', // Reproductive
+                    //Immune: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80', // Immune
+                    Breast: 'https://www.shutterstock.com/image-illustration/3d-rendered-medically-accurate-illustration-600nw-1186974508.jpg',
+                    Hepatobiliary: 'https://t3.ftcdn.net/jpg/05/47/99/04/360_F_547990421_TsWtvbI2WL5wHU1aArXE7vcprk8BkU5p.jpg',
+                    "Female Genital": "https://media.gettyimages.com/id/1682989686/vector/female-reproductive-organs-illustration.jpg?s=612x612&w=0&k=20&c=yRkD2P9BOGFGxIBS5g-yyJaL1TIgBR0KC28dC7wzbr4=",
+                    "Male Genital": "https://www.shutterstock.com/shutterstock/videos/1097590213/thumb/1.jpg?ip=x480",
+                    "Head and Neck": "https://www.healthxchange.sg/sites/hexassets/Assets/head-neck/how-to-take-care-of-nervous-system.jpg",
+                    "Kidney and Lower Urinary": "https://st4.depositphotos.com/6563466/38183/i/450/depositphotos_381839760-stock-photo-human-urinary-system-bladder-anatomy.jpg",
+                    Gastrointestinal: 'https://exam.kku.ac.th/pluginfile.php/81176/course/overviewfiles/Gastrointestinal%20System.jpg',
+                    "Bone and Soft tissue": "https://lh3.googleusercontent.com/proxy/l8Y9OB6lieOhdKAayEM1Xc-nbKj3yfIpY9ZM8ZAhfdlqe47qaFphr8bYWoRj2Qvl2FgGxhPBQ1vxeK723TkLt_X48o9YOriFpT25",
+                    Miscellaneous: 'https://img.freepik.com/premium-photo/human-body-with-blue-background-that-says-human-anatomy_130714-4503.jpg',
+
                   };
-                  const defaultImage = 'https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=400&q=80';
+                  const defaultImage = 'https://www.healthxchange.sg/sites/hexassets/Assets/head-neck/how-to-take-care-of-nervous-system.jpg';
                   return Array.from(new Set(recentSpecimens.map(s => s.system).filter(Boolean))).map(system => (
                     <Link
                       key={system}
@@ -182,7 +192,7 @@ const quickLinks = [
             </div>
           </div>
 
-          {/* Real-Time Recent Specimens */}
+          {/* Real-Time Recent Specimens
           <div className="mt-12">
             <h3 className="text-lg font-medium leading-6 text-gray-900">Recently Viewed Specimens</h3>
             {loadingSpecimens ? (
@@ -213,7 +223,47 @@ const quickLinks = [
                 ))}
               </div>
             )}
+          </div> */}
+
+{/* Real-Time Recent Specimens */}
+<div className="mt-12">
+  <h3 className="text-2xl font-semibold text-gray-800 mb-6 border-b pb-2">🧪 Recently Viewed Specimens</h3>
+
+  {loadingSpecimens ? (
+    <div className="text-gray-500 text-center mt-4">Loading...</div>
+  ) : errorSpecimens ? (
+    <div className="text-red-500 text-center mt-4">{errorSpecimens}</div>
+  ) : recentSpecimens.length === 0 ? (
+    <div className="text-gray-500 text-center mt-4">No recent specimens found.</div>
+  ) : (
+    <div className="space-y-4">
+      {recentSpecimens.map(item => (
+        <Link
+          key={item._id}
+          to={`/specimens/${item._id}`}
+          className="flex items-center space-x-4 px-4 py-3 rounded-lg bg-white shadow-sm hover:shadow-lg hover:border-l-4 hover:border-primary-500 transition duration-300"
+        >
+          <div className="flex-shrink-0 w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
+            {item.imageUrl ? (
+              <img
+                src={item.imageUrl}
+                alt={item.name}
+                className="object-cover w-12 h-12 rounded-full"
+              />
+            ) : (
+              <div className="text-gray-500 text-xl">🔬</div>
+            )}
           </div>
+          <div className="flex-1">
+            <h4 className="text-lg font-medium text-gray-800">{item.title || item.name}</h4>
+            <p className="text-sm text-gray-500">Click to view specimen details</p>
+          </div>
+        </Link>
+      ))}
+    </div>
+  )}
+</div>
+
 
           {/* Real-Time Recent Bookmarks */}
           <div className="mt-12">
