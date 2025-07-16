@@ -20,7 +20,7 @@ const initialBodySystems = [
   {
     id: 'Head and Neck',
     name: 'Head and Neck',
-    imageUrl: 'https://www.healthxchange.sg/sites/hexassets/Assets/head-neck/how-to-take-care-of-nervous-system.jpg',
+    imageUrl: 'https://t3.ftcdn.net/jpg/13/56/10/08/360_F_1356100827_o9ELHvSt2EeAIAWbYLDvWVYozfrkW7f8.jpg',
     count: 0,
   },
   {
@@ -68,7 +68,7 @@ const initialBodySystems = [
   {
     id: 'Bone and Soft tissue',
     name: 'Bone and Soft tissue',
-    imageUrl: 'https://lh3.googleusercontent.com/proxy/l8Y9OB6lieOhdKAayEM1Xc-nbKj3yfIpY9ZM8ZAhfdlqe47qaFphr8bYWoRj2Qvl2FgGxhPBQ1vxeK723TkLt_X48o9YOriFpT25',
+    imageUrl: 'https://www.recoverysystemssport.com/wp-content/uploads/2025/04/BoneGrowthStimulators.jpg',
     count: 0,
   },
   {

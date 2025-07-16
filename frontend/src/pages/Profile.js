@@ -1,6 +1,11 @@
 import React, { useContext, useState, useEffect } from 'react';
 import axios from 'axios';
+<<<<<<< Updated upstream
 import { useAuth } from '../context/AuthContext';
+=======
+import { AuthContext } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+>>>>>>> Stashed changes
 
 const API_URL = 'http://localhost:5000/api';
 
@@ -19,6 +24,7 @@ export default function Profile() {
 
   // Store initial user data for cancel/reset
   const [initialData, setInitialData] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -99,6 +105,10 @@ export default function Profile() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCancel = () => {
+    navigate(-1); // Navigate to the previous page
   };
 
   if (!user) {
@@ -229,12 +239,12 @@ export default function Profile() {
                     'Update Profile'
                   )}
                 </button>
-                {/* Cancel Button: only show if form has changed */}
+                {/* Cancel Button */}
                 <button
                   type="button"
                   className="inline-flex items-center justify-center rounded-lg bg-gray-200 px-6 py-2 text-base font-semibold text-gray-700 shadow-sm hover:bg-gray-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 transition-all duration-150"
-                  disabled={loading || !initialData || JSON.stringify(formData) === JSON.stringify(initialData)}
-                  onClick={() => initialData && setFormData(initialData)}
+                  disabled={loading}
+                  onClick={handleCancel}
                 >
                   Cancel
                 </button>
@@ -246,4 +256,3 @@ export default function Profile() {
     </div>
   );
 };
-

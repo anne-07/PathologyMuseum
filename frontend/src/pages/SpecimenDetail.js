@@ -257,19 +257,27 @@ const SpecimenDetail = () => {
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4 sm:px-6 lg:px-8">
+      <div 
+        className="min-h-screen py-8 px-4 sm:px-6 lg:px-8"
+        style={{
+          backgroundImage: `url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQNqFwIGdpTGUCWoP0guScSloZf6-0N7D6_XDUYu0fzn5epIZzI1R1WvXUvfRDpQ7H95OU&usqp=CAU')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed'
+        }}
+      >
         <div className="max-w-7xl mx-auto">
           <ImageModal open={modalOpen} src={modalImg?.src} alt={modalImg?.alt} onClose={() => setModalOpen(false)} />
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">{specimen.title || specimen.name}</h1>
-                <p className="text-lg text-gray-600">{specimen.system}</p>
+                <h1 className="text-3xl font-bold text-white">{specimen.title || specimen.name}</h1>
+                <p className="text-lg text-gray-200">{specimen.system}</p>
               </div>
               <div>
                 <button
-                  className={`inline-flex items-center px-4 py-2 rounded-md text-sm font-medium shadow-sm transition-colors focus:outline-none ${isBookmarked ? 'bg-yellow-400 text-gray-900' : 'bg-primary-600 text-white hover:bg-primary-700'}`}
+                  className={`inline-flex items-center px-4 py-2 rounded-md text-sm font-medium shadow-sm transition-colors focus:outline-none ${isBookmarked ? 'bg-yellow-400 text-gray-900' : 'border border-white text-white bg-transparent hover:bg-white hover:text-gray-900'}`}
                   onClick={handleBookmark}
                 >
                   {isBookmarked ? 'Bookmarked' : 'Bookmark'}

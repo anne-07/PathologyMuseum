@@ -26,6 +26,9 @@ export default function Navbar() {
   // Auth state (with user role)
   const { isAuthenticated, user, logout } = useAuth();
 
+  // Log the user object to the console for debugging
+  console.log('Current user state:', user);
+
   const handleLogout = () => {
     logout();
     navigate('/login');
