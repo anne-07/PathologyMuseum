@@ -163,7 +163,7 @@ export default function LandingPage() {
         </div>
         <div className="relative mx-auto max-w-7xl py-24 px-6 sm:py-32 lg:px-8">
           <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
-            Explore the Virtual Pathology Museum
+            Explore the Digital Pathology Museum
           </h1>
           <p className="mt-6 max-w-3xl text-xl text-gray-100">
             Learn Without Boundaries – Discover our comprehensive collection of pathological specimens

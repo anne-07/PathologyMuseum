@@ -3,7 +3,7 @@ import ImageModal from '../components/ImageModal';
 import '@google/model-viewer';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
-import { AuthContext } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 import { 
   MagnifyingGlassIcon,
   SpeakerWaveIcon,
@@ -157,7 +157,7 @@ const SpecimenDetail = () => {
   };
 
   // Auth context
-  const { isAuthenticated } = useContext(AuthContext);
+  const { isAuthenticated } = useAuth();
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [bookmarkId, setBookmarkId] = useState(null);
   const [note, setNote] = useState('');
@@ -376,20 +376,48 @@ const SpecimenDetail = () => {
                 <div className="text-gray-700" style={{ whiteSpace: 'pre-line' }}>{specimen.description}</div>
               </div>
 
-              {/* Related Specimens */}
+              {/* Pathogenesis Videos */}
               <div className="bg-white rounded-xl shadow-lg p-6">
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">Pathogenesis</h2>
-                <div className="flex flex-wrap gap-2">
-                  {(specimen.relatedSpecimens || []).map((relSpecimen, index) => (
-                    <span
-                      key={index}
-                      className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm"
-                    >
-                      {relSpecimen}
-                    </span>
-                  ))}
+                <div className="space-y-4">
+                  {(specimen.pathogenesisVideos && specimen.pathogenesisVideos.length > 0) ? (
+                    specimen.pathogenesisVideos.map((video, idx) => (
+                      <div key={idx} className="bg-gray-50 rounded-lg overflow-hidden border border-gray-200">
+                        <video
+                          src={video.url}
+                          controls
+                          className="w-full"
+                          title={video.caption || `Pathogenesis Video ${idx + 1}`}
+                        />
+                        {video.caption && (
+                          <div className="p-3 text-sm text-gray-700">
+                            {video.caption}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-sm text-gray-400">No pathogenesis videos available.</div>
+                  )}
                 </div>
               </div>
+
+              {/* Related Specimens */}
+              {(specimen.relatedSpecimens && specimen.relatedSpecimens.length > 0) && (
+                <div className="bg-white rounded-xl shadow-lg p-6">
+                  <h2 className="text-xl font-semibold text-gray-900 mb-4">Related Specimens</h2>
+                  <div className="flex flex-wrap gap-2">
+                    {specimen.relatedSpecimens.map((relSpecimen, index) => (
+                      <span
+                        key={index}
+                        className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm"
+                      >
+                        {relSpecimen}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

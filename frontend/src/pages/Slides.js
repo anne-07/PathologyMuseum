@@ -2,10 +2,10 @@ import React from 'react';
 
 import { useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AuthContext } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 
 export default function Slides() {
-  const { isAuthenticated } = useContext(AuthContext);
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   useEffect(() => {
     if (!isAuthenticated) navigate('/login');

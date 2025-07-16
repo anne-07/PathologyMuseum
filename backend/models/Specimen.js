@@ -54,6 +54,20 @@ const specimenSchema = new mongoose.Schema({
     },
     caption: String
   }],
+  pathogenesisVideos: [{
+    url: {
+      type: String,
+      required: true
+    },
+    public_id: {
+      type: String,
+      required: true
+    },
+    caption: {
+      type: String,
+      default: ''
+    }
+  }],
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

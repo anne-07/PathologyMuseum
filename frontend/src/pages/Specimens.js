@@ -2,14 +2,14 @@ import React, { useState, useEffect, useContext } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { MagnifyingGlassIcon, FunnelIcon, Squares2X2Icon, ListBulletIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
-import { AuthContext } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 
 const API_URL = 'http://localhost:5000/api';
 
 
 
 export default function Specimens() {
-  const { isAuthenticated } = useContext(AuthContext);
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   useEffect(() => {
     if (!isAuthenticated) navigate('/login');

@@ -18,8 +18,14 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: [true, 'Password is required'],
-    minlength: [6, 'Password must be at least 6 characters']
+    required: function() { return !this.googleId; }, // Only required if not using Google
+    minlength: [6, 'Password must be at least 6 characters'],
+    select: false // Don't include password in queries
+  },
+  googleId: {
+    type: String,
+    unique: true,
+    sparse: true
   },
   role: {
     type: String,
@@ -29,13 +35,15 @@ const userSchema = new mongoose.Schema({
     },
     default: 'student'
   }
-  
 },{
   timestamps:true
 });
 
-// Hash password before saving
+// Hash password before saving (only for non-Google users)
 userSchema.pre('save', async function(next) {
+  // Skip password hashing for Google users
+  if (this.googleId) return next();
+  
   if (!this.isModified('password')) return next();
   this.password = await bcrypt.hash(this.password, 12);
   next();

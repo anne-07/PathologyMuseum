@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { AuthContext } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 
 export default function Bookmarks() {
-  const { isAuthenticated } = useContext(AuthContext);
+  const { isAuthenticated } = useAuth();
   const [bookmarks, setBookmarks] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [editNote, setEditNote] = useState('');
@@ -87,22 +87,26 @@ export default function Bookmarks() {
             return (
               <Link
                 key={bookmark._id}
-                to={`/${bookmark.type}s/${detailId}`}
                 className="relative flex flex-col overflow-hidden rounded-lg border border-gray-300 bg-white hover:shadow-lg transition-shadow"
-                style={{ textDecoration: 'none' }}
               >
-                <div className="aspect-w-3 aspect-h-2 bg-gray-200">
-                  <img
-                    src={bookmark.imageUrl}
-                    alt={bookmark.name}
-                    className="h-full w-full object-cover"
-                  />
-                  <div className="absolute top-2 right-2">
-                    <span className="inline-flex items-center rounded-full bg-primary-100 px-2.5 py-0.5 text-xs font-medium text-primary-800">
-                      {bookmark.folder}
-                    </span>
+                <Link
+                  to={bookmark.type === 'specimen' ? `/specimens/${bookmark.specimenId}` : `/slides/${bookmark.specimenId}`}
+                  key={bookmark.specimenId}
+                  className="block p-4 hover:bg-gray-50 transition-colors"
+                >
+                  <div className="aspect-w-3 aspect-h-2 bg-gray-200">
+                    <img
+                      src={bookmark.imageUrl}
+                      alt={bookmark.name}
+                      className="h-full w-full object-cover"
+                    />
+                    <div className="absolute top-2 right-2">
+                      <span className="inline-flex items-center rounded-full bg-primary-100 px-2.5 py-0.5 text-xs font-medium text-primary-800">
+                        {bookmark.folder}
+                      </span>
+                    </div>
                   </div>
-                </div>
+                </Link>
                 <div className="flex flex-1 flex-col p-4">
                   <h3 className="text-lg font-medium text-gray-900 group-hover:underline">
                     {bookmark.name}

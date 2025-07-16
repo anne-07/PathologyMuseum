@@ -1,11 +1,11 @@
 import React, { useContext, useState, useEffect } from 'react';
 import axios from 'axios';
-import { AuthContext } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 
 const API_URL = 'http://localhost:5000/api';
 
 export default function Profile() {
-  const { user, setUser } = useContext(AuthContext);
+  const { user, setUser } = useAuth();
   const [formData, setFormData] = useState({
     username: '',
     email: '',

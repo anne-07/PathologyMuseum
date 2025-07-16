@@ -2,7 +2,7 @@ import React, { useState, useContext} from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu } from '@headlessui/react';
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
-import { AuthContext } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 
 const navigation = [
   { name: 'Home', href: '/home' },
@@ -24,13 +24,10 @@ export default function Navbar() {
   };
 
   // Auth state (with user role)
-  const { isAuthenticated, user, setIsAuthenticated, setUser } = useContext(AuthContext);
+  const { isAuthenticated, user, logout } = useAuth();
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setIsAuthenticated(false);
-    setUser(null);
+    logout();
     navigate('/login');
   };
 

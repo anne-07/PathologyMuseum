@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 
 export default function SpecimenForm({ specimen, onClose, filterOptions = {} }) {
   const [form, setForm] = useState({
     accessionNumber: specimen?.accessionNumber || '',
     title: specimen?.title || '',
     description: specimen?.description || '',
+    pathogenesisVideos: specimen?.pathogenesisVideos || [],
     organ: specimen?.organ || '',
     system: specimen?.system || '',
     diseaseCategory: specimen?.diseaseCategory || '',
@@ -109,6 +110,19 @@ export default function SpecimenForm({ specimen, onClose, filterOptions = {} }) 
     setForm(prev => ({ ...prev, models3d: [...prev.models3d, ...uploaded] }));
   };
 
+  // Pathogenesis Videos
+  const handlePathogenesisVideoUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    const uploaded = [];
+    for (const file of files) {
+      const data = await uploadToBackend(file);
+      if (data) {
+        uploaded.push({ url: data.url, public_id: data.public_id, caption: file.name });
+      }
+    }
+    setForm(prev => ({ ...prev, pathogenesisVideos: [...prev.pathogenesisVideos, ...uploaded] }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -151,6 +165,66 @@ export default function SpecimenForm({ specimen, onClose, filterOptions = {} }) 
         <div className="mb-3">
           <label className="block text-sm font-medium mb-1">Description</label>
           <textarea name="description" value={form.description} onChange={handleChange} className="w-full border rounded px-3 py-2" required />
+        </div>
+        <div className="mb-3">
+          <label className="block text-sm font-medium mb-2">Pathogenesis Videos</label>
+          <div className="border border-dashed border-gray-300 rounded-lg p-4">
+            <div className="text-center">
+              <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-4 rounded inline-flex items-center">
+                <span>Upload Pathogenesis Videos</span>
+                <input 
+                  type="file" 
+                  accept="video/*" 
+                  multiple 
+                  onChange={handlePathogenesisVideoUpload} 
+                  disabled={uploading} 
+                  className="hidden"
+                />
+              </label>
+              <p className="text-xs text-gray-500 mt-2">Upload one or more videos related to pathogenesis</p>
+            </div>
+            
+            <div className="mt-4 grid grid-cols-1 gap-3">
+              {form.pathogenesisVideos.map((video, i) => (
+                <div key={i} className="relative group bg-gray-50 p-3 rounded border">
+                  <div className="flex items-start">
+                    <video 
+                      src={video.url} 
+                      controls 
+                      className="w-48 h-32 object-cover rounded"
+                      title={video.caption || `Pathogenesis Video ${i+1}`}
+                    />
+                    <div className="ml-3 flex-1">
+                      <input
+                        type="text"
+                        value={video.caption}
+                        onChange={(e) => {
+                          const updatedVideos = [...form.pathogenesisVideos];
+                          updatedVideos[i] = { ...updatedVideos[i], caption: e.target.value };
+                          setForm(prev => ({ ...prev, pathogenesisVideos: updatedVideos }));
+                        }}
+                        placeholder="Enter video caption"
+                        className="w-full text-sm border rounded px-2 py-1 mb-2"
+                      />
+                      <button
+                        type="button"
+                        className="text-red-600 hover:text-red-800 text-sm flex items-center"
+                        onClick={async () => {
+                          await handleDeleteFile(video.public_id, video.url);
+                          setForm(prev => ({
+                            ...prev,
+                            pathogenesisVideos: prev.pathogenesisVideos.filter((_, idx) => idx !== i)
+                          }));
+                        }}
+                      >
+                        <span className="mr-1">×</span> Remove Video
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
         <div className="mb-3">
           <label className="block text-sm font-medium mb-1">Organ</label>
@@ -244,6 +318,8 @@ export default function SpecimenForm({ specimen, onClose, filterOptions = {} }) 
             ))}
           </div>
         </div>
+
+
         <div className="flex justify-end mt-6 gap-2">
           <button type="button" className="px-4 py-2 rounded bg-gray-200" onClick={onClose}>Cancel</button>
           <button type="submit" className="px-4 py-2 rounded bg-primary-600 text-white" disabled={saving}>{saving ? 'Saving...' : (specimen ? 'Update' : 'Add')}</button>

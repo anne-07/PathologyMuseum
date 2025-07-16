@@ -4,12 +4,20 @@ const asyncHandler = require('express-async-handler')
 const { User } = require('../models');
 const { generateToken } = require('../utils/generateToken')
 
+// Function to determine role based on email domain
+const determineRoleFromEmail = (email) => {
+  // For medical education, we can use the institution's email domain
+  const adminDomains = ['sitpune.edu.in']; // Add your institution's domain
+  const domain = email.split('@')[1];
+  return adminDomains.includes(domain) ? 'admin' : 'student';
+};
+
 // @Desc Register new user
 // @route POST /api/auth/register
 // @access Public
 const registerUser = asyncHandler( async (req,res) => {
   try {
-    const { username, email, password, role, adminCode } = req.body;
+    const { username, email, password } = req.body;
 
     if (!username || !email || !password) {
       return res.status(400).json({
@@ -36,12 +44,15 @@ const registerUser = asyncHandler( async (req,res) => {
       });
     }
 
-    // Create new user with role
+    // Determine role based on email domain
+    const role = determineRoleFromEmail(email);
+    
+    // Create new user with auto-determined role
     const user = await User.create({
       username,
       email,
       password,
-      role: role || 'student' // Default to student if no role provided
+      role
     });
 
     // Generate JWT token
@@ -77,10 +88,12 @@ const registerUser = asyncHandler( async (req,res) => {
 // @Desc Authenticate new user
 // @route POST /api/auth/login
 // @access Public
+
+
 const loginUser = asyncHandler(async (req, res) => {
   try {
-    const { email, password, role, adminCode } = req.body;
-    console.log('Login attempt:', { email, role, adminCode }); // Debug log
+    const { email, password } = req.body;
+    console.log('Login attempt:', { email }); // Debug log
 
     // Check if user exists
     const user = await User.findOne({ email });
@@ -100,37 +113,21 @@ const loginUser = asyncHandler(async (req, res) => {
       });
     }
 
-    // Check if the requested role matches user's role
-    if (role && role !== user.role) {
-      return res.status(403).json({
-        status: 'error',
-        message: `You are not registered as a ${role}`
-      });
+    // Determine if user should be admin based on email domain
+    const isAdmin = determineRoleFromEmail(user.email) === 'admin';
+    
+    // If the user is not an admin but trying to access admin routes
+    if (user.role !== 'admin' && isAdmin) {
+      // Update user role if their email domain suggests they should be an admin
+      user.role = 'admin';
+      await user.save();
     }
 
-    // If role is admin, verify admin code
-    if (role === 'admin') {
-      const ADMIN_CODE = '1111'; // Hardcoded admin code
-      
-      if (!adminCode) {
-        return res.status(403).json({
-          status: 'error',
-          message: 'Admin code is required'
-        });
-      }
-
-      if (adminCode !== ADMIN_CODE) {
-        return res.status(403).json({
-          status: 'error',
-          message: 'Invalid admin code'
-        });
-      }
-    }
-
-    // Generate JWT token
+    // Generate JWT token with fallback for JWT_SECRET
+    const jwtSecret = process.env.JWT_SECRET || 'your-secret-key'; // Add this line
     const token = jwt.sign(
       { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
+      jwtSecret,
       { expiresIn: '24h' }
     );
 
@@ -152,7 +149,7 @@ const loginUser = asyncHandler(async (req, res) => {
     console.error('Login error:', error);
     res.status(400).json({
       status: 'error',
-      message: error.message || 'Error during login'
+      message: error.message || 'An error occurred during login. Please try again.'
     });
   }
 });
@@ -281,5 +278,6 @@ module.exports = {
   userDataProfile,
   logoutUser,
   updateUserProfile,
-  checkUserRole
+  checkUserRole,
+  determineRoleFromEmail
 };

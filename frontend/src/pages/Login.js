@@ -2,25 +2,40 @@ import React, { useState, useEffect, useContext } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { EnvelopeIcon, LockClosedIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
-import { AuthContext } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
+import GoogleLoginButton from '../components/GoogleLoginButton';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'http://localhost:5000';
 
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { setIsAuthenticated, setUser } = useContext(AuthContext);
+  const { login, loginWithGoogle } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    adminCode: '',
-    rememberMe: false,
-    role: 'student' // default role
+    rememberMe: false
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [successMessage, setSuccessMessage] = useState(location.state?.message || '');
+  const [googleError, setGoogleError] = useState('');
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      const result = await loginWithGoogle(credentialResponse);
+      if (result.success) {
+        const user = JSON.parse(localStorage.getItem('user'));
+        navigate(user.role === 'admin' ? '/admin' : '/home');
+      } else {
+        setGoogleError(result.error || 'Google login failed');
+      }
+    } catch (error) {
+      console.error('Google login error:', error);
+      setGoogleError('Failed to login with Google. Please try again.');
+    }
+  };
 
   useEffect(() => {
     // Clear the message after 5 seconds
@@ -45,42 +60,34 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setGoogleError('');
     setLoading(true);
 
     try {
-      // Send login request
-      const response = await axios.post(`${API_URL}/auth/login`, {
-        email: formData.email,
-        password: formData.password,
-        role: formData.role,
-        adminCode: formData.role === 'admin' ? formData.adminCode : undefined
-      });
-
-      if (response.data.status === 'success') {
-        const { token, user } = response.data.data;
+      const { email, password } = formData;
+      
+      // Call the login function from AuthContext
+      try {
+        const result = await login(email, password);
         
-        // Store the token
-        localStorage.setItem('token', token);
-        
-        // Store user data
-        localStorage.setItem('user', JSON.stringify(user));
-        
-        // Update auth context
-        setIsAuthenticated(true);
-        setUser(user);
-        
-        // Redirect based on role
+        if (result.success) {
+        // If login is successful, redirect based on user role
+        const user = JSON.parse(localStorage.getItem('user'));
         if (user.role === 'admin') {
           navigate('/admin');
         } else {
           navigate('/home');
         }
       } else {
-        setError(response.data.message || 'Login failed');
+        setError(result.error || 'Login failed. Please try again.');
       }
-    } catch (err) {
-      console.error('Login error:', err.response?.data || err.message);
-      setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
+      } catch (error) {
+        console.error('Login error:', error);
+        setError(error.response?.data?.message || 'An error occurred during login. Please try again.');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      setError(error.response?.data?.message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -111,11 +118,11 @@ export default function Login() {
 
         <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-[480px]">
           <div className="bg-white px-6 py-12 shadow sm:rounded-lg sm:px-12">
-            {error && (
+            {(error || googleError) && (
               <div className="mb-4 rounded-md bg-red-50 p-4">
                 <div className="flex">
                   <div className="ml-3">
-                    <h3 className="text-sm font-medium text-red-800">{error}</h3>
+                    <h3 className="text-sm font-medium text-red-800">{error || googleError}</h3>
                   </div>
                 </div>
               </div>
@@ -132,24 +139,11 @@ export default function Login() {
             )}
 
             <form className="space-y-6" onSubmit={handleSubmit}>
-              <div>
-                <label htmlFor="role" className="block text-sm font-medium leading-6 text-gray-900">
-                  Role
-                </label>
-                <div className="mt-2">
-                  <select
-                    id="role"
-                    name="role"
-                    value={formData.role}
-                    onChange={handleChange}
-                    className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
-                  >
-                    <option value="student">Student</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </div>
-              </div>
 
+              <GoogleLoginButton 
+                onSuccess={handleGoogleSuccess}
+                onError={(error) => setGoogleError(error)}
+              />
               <div>
                 <label
                   htmlFor="email"
