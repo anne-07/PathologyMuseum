@@ -9,7 +9,7 @@ const API_URL = 'http://localhost:5000/api';
 
 export default function Register() {
   const navigate = useNavigate();
-  const { loginWithGoogle } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const [googleError, setGoogleError] = useState('');
   const [formData, setFormData] = useState({
     name: '',
@@ -63,17 +63,31 @@ export default function Register() {
 
     setLoading(true);
     try {
-      const response = await axios.post(`${API_URL}/auth/register`, {
+      // 1. Register the user
+      const registerResponse = await axios.post(`${API_URL}/auth/register`, {
         username: formData.name,
         email: formData.email,
         password: formData.password,
       });
 
-      if (response.data.status === 'success') {
-        // Store the token
-        localStorage.setItem('token', response.data.data.token);
-        // Redirect to login page
-        navigate('/login', { state: { message: 'Registration successful! Please login.' } });
+      if (registerResponse.data.status === 'success') {
+        try {
+          // 2. Automatically log in the user
+          const loginResult = await login(formData.email, formData.password);
+          
+          if (loginResult.success) {
+            // 3. Redirect based on user role
+            const user = JSON.parse(localStorage.getItem('user'));
+            navigate(user.role === 'admin' ? '/admin' : '/home');
+            return; // Exit the function after successful navigation
+          }
+          // If login fails, redirect to login page
+          navigate('/login', { state: { message: 'Registration successful! Please login.' } });
+        } catch (loginError) {
+          console.error('Auto-login after registration failed:', loginError);
+          // If auto-login fails, still redirect to login page with success message
+          navigate('/login', { state: { message: 'Registration successful! Please login.' } });
+        }
       }
     } catch (err) {
       console.error('Registration error:', err.response?.data || err.message);

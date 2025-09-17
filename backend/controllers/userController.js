@@ -92,21 +92,59 @@ const registerUser = asyncHandler( async (req,res) => {
 
 const loginUser = asyncHandler(async (req, res) => {
   try {
-    const { email, password } = req.body;
-    console.log('Login attempt:', { email }); // Debug log
+    console.log('Login request received:', {
+      body: req.body,
+      headers: req.headers
+    });
 
-    // Check if user exists
-    const user = await User.findOne({ email });
+    const { email, password } = req.body;
+    
+    // Validate request body
+    if (!email || !password) {
+      console.log('Missing email or password');
+      return res.status(400).json({
+        status: 'error',
+        message: 'Email and password are required'
+      });
+    }
+
+    console.log('Login attempt:', { email });
+
+    // Check if user exists and explicitly select the password field
+    const user = await User.findOne({ email }).select('+password');
     if (!user) {
+      console.log('User not found for email:', email);
       return res.status(401).json({ 
         status: 'error', 
         message: 'Invalid email or password' 
       });
     }
 
+    // Check if user has a password (in case they registered with OAuth)
+    if (!user.password) {
+      console.log('No password set for user (possibly registered with OAuth):', user.email);
+      return res.status(401).json({
+        status: 'error',
+        message: 'No password set for this account. Please try a different login method.'
+      });
+    }
+
     // Check password
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    console.log('Checking password for user:', user.email);
+    let isPasswordValid = false;
+    try {
+      isPasswordValid = await bcrypt.compare(password, user.password);
+      console.log('Password check result:', isPasswordValid);
+    } catch (bcryptError) {
+      console.error('Bcrypt compare error:', bcryptError);
+      return res.status(500).json({
+        status: 'error',
+        message: 'An error occurred during authentication.'
+      });
+    }
+    
     if (!isPasswordValid) {
+      console.log('Invalid password for user:', user.email);
       return res.status(401).json({ 
         status: 'error', 
         message: 'Invalid email or password' 
@@ -272,12 +310,119 @@ const checkUserRole = asyncHandler(async (req, res) => {
   }
 });
 
+// @Desc   Forgot Password
+// @route  POST /api/auth/forgot-password
+// @access Public
+const forgotPassword = asyncHandler(async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Please provide an email address'
+      });
+    }
+
+    // Find user by email
+    const user = await User.findOne({ email });
+    
+    if (!user) {
+      // For security reasons, don't reveal if the email exists or not
+      return res.status(200).json({
+        status: 'success',
+        message: 'If your email is registered, you will receive a password reset link.'
+      });
+    }
+
+    // Generate reset token (valid for 1 hour)
+    const resetToken = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '1h' }
+    );
+
+    // In a real application, you would send an email here with a link containing the resetToken
+    // For example: `https://yourdomain.com/reset-password?token=${resetToken}`
+    console.log('Password reset token:', resetToken);
+    console.log('Reset link:', `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`);
+
+    res.status(200).json({
+      status: 'success',
+      message: 'If your email is registered, you will receive a password reset link.',
+      // In production, don't send the token in the response
+      // This is just for development/testing
+      token: process.env.NODE_ENV === 'development' ? resetToken : undefined
+    });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'An error occurred while processing your request.'
+    });
+  }
+});
+
+// @Desc   Reset Password
+// @route  POST /api/auth/reset-password
+// @access Public
+const resetPassword = asyncHandler(async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Token and new password are required'
+      });
+    }
+
+    // Verify the token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    
+    // Find user by ID from token
+    const user = await User.findById(decoded.id);
+    
+    if (!user) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid or expired token'
+      });
+    }
+
+    // Update password
+    user.password = newPassword;
+    await user.save();
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Password has been reset successfully.'
+    });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    
+    let message = 'An error occurred while resetting your password.';
+    if (error.name === 'TokenExpiredError') {
+      message = 'The password reset link has expired. Please request a new one.';
+    } else if (error.name === 'JsonWebTokenError') {
+      message = 'Invalid or expired token';
+    }
+    
+    res.status(400).json({
+      status: 'error',
+      message
+    });
+  }
+});
+
 module.exports = {
   registerUser,
   loginUser,
   userDataProfile,
-  logoutUser,
   updateUserProfile,
+  logoutUser,
   checkUserRole,
-  determineRoleFromEmail
+  determineRoleFromEmail,
+  forgotPassword,
+  resetPassword
 };

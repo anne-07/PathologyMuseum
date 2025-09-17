@@ -5,7 +5,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
 
-const { registerUser, loginUser, userDataProfile, logoutUser, updateUserProfile, checkUserRole, determineRoleFromEmail } = require('../controllers/userController');
+const { registerUser, loginUser, userDataProfile, logoutUser, updateUserProfile, checkUserRole, determineRoleFromEmail, forgotPassword, resetPassword } = require('../controllers/userController');
 const { auth, adminonly} = require('../middleware/auth');
 
 router.post('/register',registerUser);
@@ -14,6 +14,8 @@ router.get('/profile', auth , userDataProfile);
 router.put('/profile', auth, updateUserProfile);
 router.post('/logout', logoutUser);
 router.get('/check-role/:email', checkUserRole);
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password', resetPassword);
 
 const { OAuth2Client } = require('google-auth-library');
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;

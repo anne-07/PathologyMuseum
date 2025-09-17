@@ -5,7 +5,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import GoogleLoginButton from '../components/GoogleLoginButton';
 
-const API_URL = 'http://localhost:5000';
+const API_URL = 'http://localhost:5000/api';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -63,16 +63,32 @@ export default function Login() {
     setGoogleError('');
     setLoading(true);
 
+    console.log('Login form submitted:', { formData });
+
     try {
       const { email, password } = formData;
       
-      // Call the login function from AuthContext
-      try {
-        const result = await login(email, password);
-        
-        if (result.success) {
+      // Basic validation
+      if (!email || !password) {
+        setError('Please enter both email and password');
+        setLoading(false);
+        return;
+      }
+      
+      console.log('Attempting to login with:', { email });
+      
+      const result = await login(email, password);
+      console.log('Login result:', result);
+      
+      if (result.success) {
         // If login is successful, redirect based on user role
-        const user = JSON.parse(localStorage.getItem('user'));
+        const user = JSON.parse(localStorage.getItem('user') || 'null');
+        console.log('User after login:', user);
+        
+        if (!user) {
+          throw new Error('User data not found after login');
+        }
+        
         if (user.role === 'admin') {
           navigate('/admin');
         } else {
@@ -80,14 +96,32 @@ export default function Login() {
         }
       } else {
         setError(result.error || 'Login failed. Please try again.');
-      }
-      } catch (error) {
-        console.error('Login error:', error);
-        setError(error.response?.data?.message || 'An error occurred during login. Please try again.');
+        console.error('Login failed:', result.error);
       }
     } catch (error) {
-      console.error('Login error:', error);
-      setError(error.response?.data?.message || 'Login failed. Please try again.');
+      console.error('Login error:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      
+      let errorMessage = 'An error occurred during login. Please try again.';
+      
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        if (error.response.status === 400) {
+          errorMessage = 'Invalid request. Please check your input.';
+        } else if (error.response.status === 401) {
+          errorMessage = 'Invalid email or password';
+        } else if (error.response.data?.message) {
+          errorMessage = error.response.data.message;
+        }
+      } else if (error.request) {
+        // The request was made but no response was received
+        errorMessage = 'No response from server. Please check your connection.';
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

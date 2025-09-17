@@ -16,18 +16,14 @@ export default function GoogleLoginButton({ onSuccess, onError }) {
 
         <div className="mt-6">
           <GoogleLogin
-            onSuccess={(credentialResponse) => {
-              onSuccess(credentialResponse);
-            }}
-            onError={(error) => {
-              console.error('Google login error:', error);
-              onError('Google login failed. Please try again.');
-            }}
+            onSuccess={onSuccess}
+            onError={() => onError('Google login failed. Please try again.')}
             useOneTap
             text="continue_with"
             shape="rectangular"
             size="large"
             width="100%"
+            auto_select={false}
           />
         </div>
       </div>

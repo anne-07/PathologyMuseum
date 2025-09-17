@@ -3,9 +3,9 @@ const axios = require('axios');
 const BASE_URL = 'http://localhost:5000/api';
 let authToken = '';
 
-const logSuccess = (message) => console.log('✅', message);
-const logInfo = (message) => console.log('ℹ️', message);
-const logError = (error) => console.error('❌ Error:', error.message);
+const logSuccess = (message) => console.log('Succes', message);
+const logInfo = (message) => console.log('Info', message);
+const logError = (error) => console.error('Error:', error.message);
 
 const testRoutes = async () => {
   try {
