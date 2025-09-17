@@ -20,6 +20,9 @@ import AdminPanel from './pages/AdminPanel';
 import Profile from './pages/Profile';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import QuestionDetail from './components/discussion/QuestionDetail';
+import QuestionForm from './components/discussion/QuestionForm';
+import QuestionList from './components/discussion/QuestionList';
 
 const router = createBrowserRouter([
   {
@@ -49,6 +52,18 @@ const router = createBrowserRouter([
       {
         path: "slides/:id",
         element: <SlideDetail />,
+      },
+      {
+        path: "questions/:id",
+        element: <QuestionDetail />,
+      },
+      {
+        path: "specimens/:id/ask",
+        element: <QuestionForm />,
+      },
+      {
+        path: "specimens/:id/discussions",
+        element: <QuestionList />,
       },
       {
         path: "bookmarks",

@@ -9,6 +9,7 @@ const authRoutes = require('./routes/auth.routes');
 const specimenRoutes = require('./routes/specimen.routes');
 const slideRoutes = require('./routes/slide.routes');
 const bookmarkRoutes = require('./routes/bookmark.routes');
+const discussionRoutes = require('./routes/discussion.routes');
 // const userRoutes = require('./routes/userRoutes'); 
 
 const app = express();
@@ -79,6 +80,7 @@ app.use('/api/specimens', specimenRoutes);
 app.use('/api/slides', slideRoutes);
 app.use('/api/filter-options', require('./routes/filterOption.routes'));
 app.use('/api/upload', require('./routes/upload.routes'));
+app.use('/api/discussions', discussionRoutes);
 // app.use('/api/users', userRoutes);
 
 // Test route

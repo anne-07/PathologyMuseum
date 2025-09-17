@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
 import ImageModal from '../components/ImageModal';
 import '@google/model-viewer';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { 
   MagnifyingGlassIcon,
   SpeakerWaveIcon,
   SpeakerXMarkIcon,
-  InformationCircleIcon
+  InformationCircleIcon,
+  ChatBubbleLeftRightIcon
 } from '@heroicons/react/24/outline';
 
 // Fullscreen wrapper for <model-viewer> with built-in pan
@@ -96,6 +97,9 @@ function ModelViewerFullscreen({ url, caption }) {
 
 
 const SpecimenDetail = () => {
+  const { id: specimenId } = useParams();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const { id } = useParams();
   const [isPlaying, setIsPlaying] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -270,14 +274,21 @@ const SpecimenDetail = () => {
           <ImageModal open={modalOpen} src={modalImg?.src} alt={modalImg?.alt} onClose={() => setModalOpen(false)} />
           {/* Header */}
           <div className="mb-8">
-            <div className="flex items-center justify-between">
+            <div className="flex items-start justify-between gap-4">
               <div>
                 <h1 className="text-3xl font-bold text-white">{specimen.title || specimen.name}</h1>
                 <p className="text-lg text-gray-200">{specimen.system}</p>
               </div>
-              <div>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Link
+                  to={`/specimens/${specimenId}/discussions`}
+                  className="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  <ChatBubbleLeftRightIcon className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
+                  View Discussions
+                </Link>
                 <button
-                  className={`inline-flex items-center px-4 py-2 rounded-md text-sm font-medium shadow-sm transition-colors focus:outline-none ${isBookmarked ? 'bg-yellow-400 text-gray-900' : 'border border-white text-white bg-transparent hover:bg-white hover:text-gray-900'}`}
+                  className={`inline-flex items-center justify-center px-4 py-2 rounded-md text-sm font-medium shadow-sm transition-colors focus:outline-none ${isBookmarked ? 'bg-yellow-400 text-gray-900' : 'border border-white text-white bg-transparent hover:bg-white hover:text-gray-900'}`}
                   onClick={handleBookmark}
                 >
                   {isBookmarked ? 'Bookmarked' : 'Bookmark'}
@@ -426,6 +437,7 @@ const SpecimenDetail = () => {
                   </div>
                 </div>
               )}
+              
             </div>
           </div>
         </div>
