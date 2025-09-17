@@ -300,7 +300,7 @@ const SpecimenDetail = () => {
               </div>
             )}
             {isBookmarked && !showNoteInput && (
-              <div className="mt-2 text-sm text-gray-600 flex items-center gap-2">
+              <div className="mt-2 text-sm text-white flex items-center gap-2">
                 <span>Note: {note}</span>
                 <button className="text-primary-600 underline text-xs" onClick={() => setShowNoteInput(true)}>Edit</button>
                 <button

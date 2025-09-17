@@ -7,10 +7,7 @@ import { useAuth } from '../context/AuthContext';
 const navigation = [
   { name: 'Home', href: '/home' },
   { name: 'Specimens', href: '/specimens' },
-  { name: 'Slides', href: '/slides' },
-  { name: 'Bookmarks', href: '/bookmarks' },
-  // { name: 'About', href: '/about' },
-  // { name: 'Contact', href: '/contact' },
+  { name: 'Bookmarks', href: '/bookmarks', userOnly: true },
   { name: 'Admin Panel', href: '/admin', adminOnly: true },
 ];
 
@@ -34,6 +31,14 @@ export default function Navbar() {
     navigate('/login');
   };
 
+  const handleNavigationClick = (href) => {
+    if (href === '/bookmarks' && !isAuthenticated) {
+      navigate('/login', { state: { from: href } });
+      return false;
+    }
+    return true;
+  };
+
   return (
     <header className="bg-white shadow z-50 relative">
       <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8" aria-label="Top">
@@ -46,10 +51,17 @@ export default function Navbar() {
               {navigation.map((item) => {
                 // Only show admin panel if user is authenticated and is admin
                 if (item.adminOnly && (!isAuthenticated || !user || user.role !== 'admin')) return null;
+                // Hide bookmarks for admin users
+                if (item.userOnly && (!isAuthenticated || user?.role === 'admin')) return null;
                 return (
                   <Link
                     key={item.name}
                     to={item.href}
+                    onClick={(e) => {
+                      if (!handleNavigationClick(item.href)) {
+                        e.preventDefault();
+                      }
+                    }}
                     className={`${
                       isActive(item.href)
                         ? 'text-primary-600 border-b-2 border-primary-600'
@@ -143,17 +155,24 @@ export default function Navbar() {
                 <div className="px-1 py-1">
                   {navigation.map((item) => {
                     if (item.adminOnly && (!isAuthenticated || !user || user.role !== 'admin')) return null;
+                    // Hide bookmarks for admin users
+                    if (item.userOnly && (!isAuthenticated || user?.role === 'admin')) return null;
                     return (
                       <Menu.Item key={item.name}>
                         {({ active }) => (
                           <Link
                             to={item.href}
+                            onClick={(e) => {
+                              if (!handleNavigationClick(item.href)) {
+                                e.preventDefault();
+                              }
+                              setMobileMenuOpen(false);
+                            }}
                             className={`${
                               active ? 'bg-primary-500 text-white' : 'text-gray-900'
                             } group flex w-full items-center rounded-md px-2 py-2 text-sm cursor-pointer ${
                               isActive(item.href) ? 'bg-primary-50' : ''
                             }`}
-                            onClick={() => setMobileMenuOpen(false)}
                           >
                             {item.name}
                           </Link>

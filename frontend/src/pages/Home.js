@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 
 // Dynamic recent items will be fetched from backend
-
 
 const quickLinks = [
   { name: 'Specimens Library', href: '/specimens', icon: '🔬' },
@@ -11,10 +11,17 @@ const quickLinks = [
   { name: 'Bookmarks', href: '/bookmarks', icon: '📑' },
 ];
 
-
-  export default function Home() {
+export default function Home() {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
+  const { isAuthenticated, user, logout } = useAuth();
+
+  // Check authentication immediately
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login', { replace: true });
+      return;
+    }
+  }, [isAuthenticated, navigate]);
 
   // Real-time data states
   const [recentSpecimens, setRecentSpecimens] = useState([]);
@@ -23,23 +30,6 @@ const quickLinks = [
   const [loadingBookmarks, setLoadingBookmarks] = useState(true);
   const [errorSpecimens, setErrorSpecimens] = useState(null);
   const [errorBookmarks, setErrorBookmarks] = useState(null);
-
-  useEffect(() => {
-    // Check if user is logged in
-    const userStr = localStorage.getItem('user');
-    if (!userStr) {
-      navigate('/login');
-      return;
-    }
-
-    try {
-      const userData = JSON.parse(userStr);
-      setUser(userData);
-    } catch (error) {
-      console.error('Error parsing user data:', error);
-      navigate('/login', { state: { message: 'Session expired. Please log in again.' } });
-    }
-  }, [navigate]);
 
   // Fetch recently viewed specimens
   const fetchRecentSpecimens = async () => {
@@ -52,6 +42,7 @@ const quickLinks = [
         setLoadingSpecimens(false);
         return;
       }
+
       // Fetch specimen data for each ID (in order)
       const res = await axios.get('/api/specimens', { params: { ids: ids.join(',') } });
       // The backend should return specimens in the same order as requested IDs; if not, sort them
@@ -86,19 +77,17 @@ const quickLinks = [
     }
   };
 
-  // Polling for real-time updates
+  // Fetch data when component mounts
   useEffect(() => {
-    fetchRecentSpecimens();
-    fetchRecentBookmarks();
-    const interval = setInterval(() => {
+    if (isAuthenticated) {
       fetchRecentSpecimens();
       fetchRecentBookmarks();
-    }, 10000); // 10 seconds
-    return () => clearInterval(interval);
-  }, []);
+    }
+  }, [isAuthenticated]);
 
-  if (!user) {
-    return null; // or a loading spinner
+  // If not authenticated, return null to prevent rendering
+  if (!isAuthenticated) {
+    return null;
   }
 
   return (
@@ -192,78 +181,44 @@ const quickLinks = [
             </div>
           </div>
 
-          {/* Real-Time Recent Specimens
+          {/* Real-Time Recent Specimens */}
           <div className="mt-12">
-            <h3 className="text-lg font-medium leading-6 text-gray-900">Recently Viewed Specimens</h3>
+            <h3 className="text-2xl font-semibold text-gray-800 mb-6 border-b pb-2">🧪 Recently Viewed Specimens</h3>
+
             {loadingSpecimens ? (
-              <div className="mt-2 text-gray-500">Loading...</div>
+              <div className="text-gray-500 text-center mt-4">Loading...</div>
             ) : errorSpecimens ? (
-              <div className="mt-2 text-red-500">{errorSpecimens}</div>
+              <div className="text-red-500 text-center mt-4">{errorSpecimens}</div>
             ) : recentSpecimens.length === 0 ? (
-              <div className="text-gray-500">No recent specimens found.</div>
+              <div className="text-gray-500 text-center mt-4">No recent specimens found.</div>
             ) : (
-              <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="space-y-4">
                 {recentSpecimens.map(item => (
                   <Link
                     key={item._id}
                     to={`/specimens/${item._id}`}
-                    className="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm hover:border-primary-500 hover:ring-1 hover:ring-primary-500"
+                    className="flex items-center space-x-4 px-4 py-3 rounded-lg bg-white shadow-sm hover:shadow-lg hover:border-l-4 hover:border-primary-500 transition duration-300"
                   >
-                    <div className="flex-shrink-0 w-16 h-16 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="flex-shrink-0 w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
                       {item.imageUrl ? (
-                        <img src={item.imageUrl} alt={item.name} className="object-cover w-full h-full" />
+                        <img
+                          src={item.imageUrl}
+                          alt={item.name}
+                          className="object-cover w-12 h-12 rounded-full"
+                        />
                       ) : (
-                        <div className="flex items-center justify-center h-full text-gray-400">🔬</div>
+                        <div className="text-gray-500 text-xl">🔬</div>
                       )}
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="font-medium text-gray-900">{item.title || item.name}</div>
+                    <div className="flex-1">
+                      <h4 className="text-lg font-medium text-gray-800">{item.title || item.name}</h4>
+                      <p className="text-sm text-gray-500">Click to view specimen details</p>
                     </div>
                   </Link>
                 ))}
               </div>
             )}
-          </div> */}
-
-{/* Real-Time Recent Specimens */}
-<div className="mt-12">
-  <h3 className="text-2xl font-semibold text-gray-800 mb-6 border-b pb-2">🧪 Recently Viewed Specimens</h3>
-
-  {loadingSpecimens ? (
-    <div className="text-gray-500 text-center mt-4">Loading...</div>
-  ) : errorSpecimens ? (
-    <div className="text-red-500 text-center mt-4">{errorSpecimens}</div>
-  ) : recentSpecimens.length === 0 ? (
-    <div className="text-gray-500 text-center mt-4">No recent specimens found.</div>
-  ) : (
-    <div className="space-y-4">
-      {recentSpecimens.map(item => (
-        <Link
-          key={item._id}
-          to={`/specimens/${item._id}`}
-          className="flex items-center space-x-4 px-4 py-3 rounded-lg bg-white shadow-sm hover:shadow-lg hover:border-l-4 hover:border-primary-500 transition duration-300"
-        >
-          <div className="flex-shrink-0 w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
-            {item.imageUrl ? (
-              <img
-                src={item.imageUrl}
-                alt={item.name}
-                className="object-cover w-12 h-12 rounded-full"
-              />
-            ) : (
-              <div className="text-gray-500 text-xl">🔬</div>
-            )}
           </div>
-          <div className="flex-1">
-            <h4 className="text-lg font-medium text-gray-800">{item.title || item.name}</h4>
-            <p className="text-sm text-gray-500">Click to view specimen details</p>
-          </div>
-        </Link>
-      ))}
-    </div>
-  )}
-</div>
-
 
           {/* Real-Time Recent Bookmarks */}
           <div className="mt-12">
@@ -303,4 +258,3 @@ const quickLinks = [
     </div>
   );
 }
-

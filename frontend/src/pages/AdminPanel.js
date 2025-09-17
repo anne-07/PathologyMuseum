@@ -179,16 +179,6 @@ export default function AdminPanel() {
               Specimens
             </button>
             <button
-              onClick={() => setActiveTab('slides')}
-              className={`${
-                activeTab === 'slides'
-                  ? 'border-primary-500 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-              } whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium`}
-            >
-              Slides
-            </button>
-            <button
               onClick={() => setActiveTab('filters')}
               className={`${
                 activeTab === 'filters'
