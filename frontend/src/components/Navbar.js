@@ -5,7 +5,7 @@ import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../context/AuthContext';
 
 const navigation = [
-  { name: 'Home', href: '/home' },
+  { name: 'Home', href: '/home', userOnly: true },
   { name: 'Specimens', href: '/specimens' },
   { name: 'Bookmarks', href: '/bookmarks', userOnly: true },
   { name: 'Admin Panel', href: '/admin', adminOnly: true },
