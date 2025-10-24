@@ -13,6 +13,11 @@
     "@mui/material": "^7.3.2",
     "@react-oauth/google": "^0.12.2",
     "axios": "^1.8.1",
+<<<<<<< HEAD
+=======
+    "date-fns": "^2.30.0",
+    "pathology-lms": "file:..",
+>>>>>>> 9163040 (Finalize package.json after conflict resolution)
     "react": "^18.2.0",
     "react-bootstrap": "^2.10.10",
     "react-dom": "^18.2.0",
