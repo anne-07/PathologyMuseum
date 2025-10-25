@@ -89,6 +89,7 @@ const registerUser = asyncHandler( async (req,res) => {
 // @route POST /api/auth/login
 // @access Public
 
+const { generateTokens, setTokenCookies } = require('../middleware/auth');
 
 const loginUser = asyncHandler(async (req, res) => {
   try {
@@ -161,20 +162,18 @@ const loginUser = asyncHandler(async (req, res) => {
       await user.save();
     }
 
-    // Generate JWT token with fallback for JWT_SECRET
-    const jwtSecret = process.env.JWT_SECRET || 'your-secret-key'; // Add this line
-    const token = jwt.sign(
-      { id: user._id, role: user.role },
-      jwtSecret,
-      { expiresIn: '24h' }
-    );
+    // Generate tokens
+    const { accessToken, refreshToken } = generateTokens(user);
+    
+    // Set HTTP-only cookies
+    setTokenCookies(res, { accessToken, refreshToken });
 
-    console.log('Login successful for:', email); // Debug log
+    console.log('Login successful for:', email);
 
+    // Return user data without sensitive information
     res.status(200).json({
       status: 'success',
       data: {
-        token,
         user: {
           id: user._id,
           username: user.username,
@@ -195,43 +194,63 @@ const loginUser = asyncHandler(async (req, res) => {
 
 
 
-// @Desc Get new user
+// @Desc Get user profile
 // @route GET /api/auth/profile
 // @access Private
-const userDataProfile = asyncHandler( async (req,res) => {
-  // const user = await User.findById(req.user._id).select('-password');
-  // const user = {
-    // _id: req.user._id,
-    // username: req.user.username,
-    // email: req.user.email,
-    // role: req.user.role
-  // }
-  res.status(200).json({ 
-    status: 'success',
-    data:{
-      user:{
-        _id: req.user._id,
-        username: req.user.username,
-        email: req.user.email,
-        role: req.user.role
-      }
+const userDataProfile = asyncHandler(async (req, res) => {
+  try {
+    // The user is already attached to the request by the auth middleware
+    const user = await User.findById(req.user._id).select('-password -__v');
+    
+    if (!user) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'User not found'
+      });
     }
-  });
+
+    res.status(200).json({ 
+      status: 'success',
+      data: {
+        user: {
+          _id: user._id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+          googleId: user.googleId,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch user profile'
+    });
+  }
 });
 
 
-// @Desc Get new user
-// @route GET /api/auth/profile
-// @access Private
-const logoutUser = asyncHandler( async (req,res) => {
-  // res.cookie('jwt','',{
-  //   httpOnly:true,
-  //   expires: new Date(0)
-  // })
-  
-  res.status(200).json({
-    message: 'User logged out'
-  });
+const { clearTokenCookies } = require('../middleware/auth');
+
+const logoutUser = asyncHandler(async (req, res) => {
+  try {
+    // Clear the HTTP-only cookies
+    clearTokenCookies(res);
+    
+    res.status(200).json({
+      status: 'success',
+      message: 'User logged out successfully'
+    });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'An error occurred during logout'
+    });
+  }
 });
 
 // @Desc Update user profile

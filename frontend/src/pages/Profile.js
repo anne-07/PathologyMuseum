@@ -48,7 +48,9 @@ export default function Profile() {
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         
         // Fetch user profile
-        const response = await axios.get(`${API_URL}/auth/profile`);
+        const response = await axios.get(`${API_URL}/auth/profile`, {
+          withCredentials: true
+        });
         
         if (response.data.status === 'success') {
           const userData = response.data.data.user;
@@ -117,7 +119,8 @@ export default function Profile() {
           headers: { 
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${localStorage.getItem('token')}`
-          } 
+          },
+          withCredentials: true
         }
       );
       

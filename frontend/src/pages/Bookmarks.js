@@ -14,9 +14,7 @@ export default function Bookmarks() {
   useEffect(() => {
     if (!isAuthenticated) return;
     setLoading(true);
-    const token = localStorage.getItem('token');
-    axios.get('/api/bookmarks', {
-      headers: { Authorization: `Bearer ${token}` },
+    axios.get('/bookmarks', {
       withCredentials: true
     })
       .then(res => {
@@ -30,9 +28,7 @@ export default function Bookmarks() {
   }, [isAuthenticated]);
 
   const handleDelete = (id) => {
-    const token = localStorage.getItem('token');
-    axios.delete(`/api/bookmarks/${id}`, {
-      headers: { Authorization: `Bearer ${token}` },
+    axios.delete(`/bookmarks/${id}`, {
       withCredentials: true
     })
       .then(() => {
@@ -47,12 +43,10 @@ export default function Bookmarks() {
   };
 
   const handleSaveNote = (bookmark) => {
-    const token = localStorage.getItem('token');
-    axios.post('/api/bookmarks', {
+    axios.post('/bookmarks', {
       ...bookmark,
       notes: editNote
     }, {
-      headers: { Authorization: `Bearer ${token}` },
       withCredentials: true
     })
       .then(res => {

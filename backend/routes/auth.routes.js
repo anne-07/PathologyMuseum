@@ -6,7 +6,7 @@ const jwt = require('jsonwebtoken');
 const { User } = require('../models');
 
 const { registerUser, loginUser, userDataProfile, logoutUser, updateUserProfile, checkUserRole, determineRoleFromEmail, forgotPassword, resetPassword } = require('../controllers/userController');
-const { auth, adminonly} = require('../middleware/auth');
+const { auth, adminOnly, generateTokens, setTokenCookies } = require('../middleware/auth');
 
 router.post('/register',registerUser);
 router.post('/login', loginUser);
@@ -16,6 +16,54 @@ router.post('/logout', logoutUser);
 router.get('/check-role/:email', checkUserRole);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);
+router.post('/refresh-token', async (req, res) => {
+  try {
+    const refreshToken = req.cookies?.refreshToken;
+    if (!refreshToken) {
+      return res.status(401).json({
+        status: 'error',
+        message: 'No refresh token provided'
+      });
+    }
+
+    // Verify the refresh token
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET || 'your-refresh-secret');
+    
+    // Find the user
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(401).json({
+        status: 'error',
+        message: 'User not found'
+      });
+    }
+
+    // Generate new tokens
+    const { accessToken, refreshToken: newRefreshToken } = generateTokens(user);
+    
+    // Set the new tokens in HTTP-only cookies
+    setTokenCookies(res, { accessToken, refreshToken: newRefreshToken });
+
+    // Send success response (tokens are in HTTP-only cookies)
+    res.status(200).json({
+      status: 'success',
+      data: {
+        user: {
+          _id: user._id,
+          email: user.email,
+          role: user.role,
+          username: user.username
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Token refresh error:', error);
+    res.status(401).json({
+      status: 'error',
+      message: 'Invalid or expired refresh token'
+    });
+  }
+});
 
 const { OAuth2Client } = require('google-auth-library');
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -69,17 +117,16 @@ router.post('/google', async (req, res) => {
       });
     }
 
-    // Generate JWT token
-    const jwtToken = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET || 'your-secret-key',
-      { expiresIn: '24h' }
-    );
+    // Generate tokens
+    const { accessToken, refreshToken } = generateTokens(user);
+    
+    // Set HTTP-only cookies
+    setTokenCookies(res, { accessToken, refreshToken });
 
+    // Return user data (tokens are in cookies)
     res.json({
       status: 'success',
       data: {
-        token: jwtToken,
         user: {
           id: user._id,
           username: user.username,

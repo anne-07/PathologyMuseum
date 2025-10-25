@@ -14,7 +14,8 @@ export const getQuestionsBySpecimen = async (specimenId, page = 1, limit = 10, s
           limit,
           sortBy
         },
-        headers: getAuthHeader()
+        headers: getAuthHeader(),
+        withCredentials: true
       }
     );
     return response.data;
@@ -28,7 +29,10 @@ export const getQuestion = async (questionId) => {
   try {
     const response = await axios.get(
       `${API_URL}/discussions/questions/${questionId}`,
-      { headers: getAuthHeader() }
+      { 
+        headers: getAuthHeader(),
+        withCredentials: true 
+      }
     );
     return response.data;
   } catch (error) {
@@ -42,7 +46,10 @@ export const createQuestion = async (questionData) => {
     const response = await axios.post(
       `${API_URL}/discussions/specimen/${questionData.specimenId}/questions`,
       questionData,
-      { headers: getAuthHeader() }
+      { 
+        headers: getAuthHeader(),
+        withCredentials: true 
+      }
     );
     return response.data;
   } catch (error) {
@@ -56,7 +63,10 @@ export const updateQuestion = async (questionId, updateData) => {
     const response = await axios.patch(
       `${API_URL}/discussions/questions/${questionId}`,
       updateData,
-      { headers: getAuthHeader() }
+      { 
+        headers: getAuthHeader(),
+        withCredentials: true 
+      }
     );
     return response.data;
   } catch (error) {
@@ -69,7 +79,10 @@ export const deleteQuestion = async (questionId) => {
   try {
     await axios.delete(
       `${API_URL}/discussions/questions/${questionId}`,
-      { headers: getAuthHeader() }
+      { 
+        headers: getAuthHeader(),
+        withCredentials: true 
+      }
     );
   } catch (error) {
     console.error('Error deleting question:', error);
@@ -84,7 +97,8 @@ export const getAnswers = async (questionId, page = 1, limit = 10) => {
       `${API_URL}/discussions/questions/${questionId}/answers`,
       { 
         params: { page, limit },
-        headers: getAuthHeader()
+        headers: getAuthHeader(),
+        withCredentials: true
       }
     );
     return response.data;
@@ -99,7 +113,10 @@ export const createAnswer = async (questionId, answerData) => {
     const response = await axios.post(
       `${API_URL}/discussions/questions/${questionId}/answers`,
       answerData,
-      { headers: getAuthHeader() }
+      { 
+        headers: getAuthHeader(),
+        withCredentials: true 
+      }
     );
     return response.data;
   } catch (error) {
@@ -113,7 +130,10 @@ export const updateAnswer = async (answerId, updateData) => {
     const response = await axios.patch(
       `${API_URL}/discussions/answers/${answerId}`,
       updateData,
-      { headers: getAuthHeader() }
+      { 
+        headers: getAuthHeader(),
+        withCredentials: true 
+      }
     );
     return response.data;
   } catch (error) {
@@ -126,7 +146,10 @@ export const deleteAnswer = async (answerId) => {
   try {
     await axios.delete(
       `${API_URL}/discussions/answers/${answerId}`,
-      { headers: getAuthHeader() }
+      { 
+        headers: getAuthHeader(),
+        withCredentials: true 
+      }
     );
   } catch (error) {
     console.error('Error deleting answer:', error);
@@ -139,7 +162,10 @@ export const markBestAnswer = async (answerId) => {
     const response = await axios.patch(
       `${API_URL}/discussions/answers/${answerId}/mark-best`,
       {},
-      { headers: getAuthHeader() }
+      { 
+        headers: getAuthHeader(),
+        withCredentials: true 
+      }
     );
     return response.data;
   } catch (error) {

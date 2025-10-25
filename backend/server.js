@@ -25,7 +25,8 @@ app.use(cors({
 // Body parser middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-// app.use(cookieparser());
+// Cookie parser (required for reading access/refresh cookies)
+app.use(cookieparser());
 
 // Register API routes
 app.use('/api/bookmarks', bookmarkRoutes);

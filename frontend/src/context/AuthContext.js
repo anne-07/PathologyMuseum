@@ -6,6 +6,10 @@ const AuthContext = createContext();
 
 const API_URL = 'http://localhost:5000/api';
 
+// Configure axios for cookie-based auth
+axios.defaults.baseURL = API_URL;
+axios.defaults.withCredentials = true;
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -13,22 +17,17 @@ export const AuthProvider = ({ children }) => {
 
   const loginWithGoogle = async (credentialResponse) => {
     try {
-      const response = await axios.post(`${API_URL}/auth/google`, {
+      const response = await axios.post(`/auth/google`, {
         token: credentialResponse.credential
       });
       
       if (response.data.status === 'success') {
-        const { token, user } = response.data.data;
-        // Store token in both localStorage and axios defaults
-        localStorage.setItem('token', token);
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        
-        // Update user state
+        const { user } = response.data.data;
+        // Update user state (tokens are stored in HTTP-only cookies by the server)
         const userData = {
           ...user,
           email: user.email || credentialResponse.profileObj?.email
         };
-        
         localStorage.setItem('user', JSON.stringify(userData));
         setUser(userData);
         setIsAuthenticated(true);
@@ -48,27 +47,16 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const token = localStorage.getItem('token');
-        if (token) {
-          // Set the token in axios defaults
-          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-          
-          const response = await axios.get(`${API_URL}/auth/me`);
-          if (response.data.status === 'success') {
-            setUser(response.data.data.user);
-            setIsAuthenticated(true);
-          } else {
-            // If the token is invalid, clear it
-            localStorage.removeItem('token');
-            delete axios.defaults.headers.common['Authorization'];
-            setUser(null);
-            setIsAuthenticated(false);
-          }
+        const response = await axios.get(`/auth/profile`);
+        if (response.data.status === 'success') {
+          setUser(response.data.data.user);
+          setIsAuthenticated(true);
+        } else {
+          setUser(null);
+          setIsAuthenticated(false);
         }
       } catch (error) {
         console.error('Auth check failed:', error);
-        localStorage.removeItem('token');
-        delete axios.defaults.headers.common['Authorization'];
         setUser(null);
         setIsAuthenticated(false);
       } finally {
@@ -82,28 +70,17 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       console.log('Attempting login with:', { email });
-      const response = await axios.post(`${API_URL}/auth/login`, {
+      const response = await axios.post(`/auth/login`, {
         email,
         password
-      }, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
       });
       
       console.log('Login response:', response.data);
       
-      if (!response.data.data) {
+      if (!response.data.data?.user) {
         throw new Error('Invalid response format from server');
       }
-      
-      const { token, user } = response.data.data;
-      
-      if (!token || !user) {
-        throw new Error('Missing token or user data in response');
-      }
-      
-      localStorage.setItem('token', token);
+      const { user } = response.data.data;
       localStorage.setItem('user', JSON.stringify(user));
       setUser(user);
       setIsAuthenticated(true);
@@ -145,11 +122,13 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-
-
-  const logout = () => {
-    localStorage.removeItem('token');
+  const logout = async () => {
     localStorage.removeItem('user');
+    try {
+      await axios.post(`/auth/logout`);
+    } catch (e) {
+      // ignore
+    }
     setUser(null);
     setIsAuthenticated(false);
     // Navigation is now handled in the component that calls logout

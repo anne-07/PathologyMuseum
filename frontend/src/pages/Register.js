@@ -64,11 +64,17 @@ export default function Register() {
     setLoading(true);
     try {
       // 1. Register the user
-      const registerResponse = await axios.post(`${API_URL}/auth/register`, {
-        username: formData.name,
-        email: formData.email,
-        password: formData.password,
-      });
+      const registerResponse = await axios.post(
+        `${API_URL}/auth/register`,
+        {
+          username: formData.name,
+          email: formData.email,
+          password: formData.password,
+        },
+        {
+          withCredentials: true
+        }
+      );
 
       if (registerResponse.data.status === 'success') {
         try {

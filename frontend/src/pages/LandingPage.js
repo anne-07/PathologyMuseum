@@ -87,7 +87,9 @@ export default function LandingPage() {
   useEffect(() => {
     const fetchSpecimenCounts = async () => {
       try {
-        const response = await axios.get(`${API_URL}/specimens`);
+        const response = await axios.get(`${API_URL}/specimens`, {
+          withCredentials: true
+        });
         if (!response.data || !response.data.data || !response.data.data.specimens) {
           console.error('Invalid response format:', response.data);
           return;

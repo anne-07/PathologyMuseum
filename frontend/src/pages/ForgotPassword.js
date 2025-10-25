@@ -14,7 +14,7 @@ export default function ForgotPassword() {
     setError('');
     try {
       // You may need to adjust the endpoint based on your backend implementation
-      const res = await axios.post('/api/auth/forgot-password', { email });
+      const res = await axios.post('/auth/forgot-password', { email });
       if (res.data.status === 'success') {
         setSuccess('If an account exists for this email, a password reset link has been sent.');
       } else {

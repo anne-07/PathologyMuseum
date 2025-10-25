@@ -3,7 +3,7 @@ import axios from 'axios';
 import SpecimenForm from './SpecimenForm';
 import AddFilterOptionForm from './AddFilterOptionForm';
 
-const API_URL = 'http://localhost:5000/api';
+// API base URL is set in axios defaults in AuthContext.js
 
 export default function AdminPanel() {
   const [specimens, setSpecimens] = useState([]);
@@ -29,14 +29,20 @@ export default function AdminPanel() {
     setFilterError(null);
     try {
       const types = [ 'organ', 'system', 'diseaseCategory'];
-      const results = await Promise.all(types.map(type => axios.get(`${API_URL}/filter-options?type=${type}`)));
+      const results = await Promise.all(
+        types.map(type => 
+          axios.get(`/filter-options?type=${type}`, {
+            withCredentials: true
+          })
+        )
+      );
       const newOptions = {};
       types.forEach((type, i) => {
         newOptions[type] = results[i].data.data.options.map(opt => opt.value);
       });
       setFilterOptions(newOptions);
     } catch (err) {
-      setFilterError('Failed to load filter options');
+      setFilterError('Failed to load filter options: ' + (err.response?.data?.message || err.message));
     } finally {
       setFilterLoading(false);
     }
@@ -47,9 +53,11 @@ export default function AdminPanel() {
   const addFilterOption = async (type) => {
     if (!newFilter[type]?.trim()) return;
     try {
-      const token = localStorage.getItem('token');
-      await axios.post(`${API_URL}/filter-options`, { type, value: newFilter[type].trim() }, {
-        headers: { Authorization: `Bearer ${token}` }
+      await axios.post(`/filter-options`, { 
+        type, 
+        value: newFilter[type].trim() 
+      }, {
+        withCredentials: true
       });
       setNewFilter(f => ({ ...f, [type]: '' }));
       fetchFilterOptions();
@@ -61,13 +69,14 @@ export default function AdminPanel() {
 
   const deleteFilterOption = async (type, value) => {
     try {
-      const token = localStorage.getItem('token');
       // Get the option ID
-      const res = await axios.get(`${API_URL}/filter-options?type=${type}`);
+      const res = await axios.get(`/filter-options?type=${type}`, {
+        withCredentials: true
+      });
       const option = res.data.data.options.find(opt => opt.value === value);
       if (!option) return alert('Option not found');
-      await axios.delete(`${API_URL}/filter-options/${option._id}`, {
-        headers: { Authorization: `Bearer ${token}` }
+      await axios.delete(`/filter-options/${option._id}`, {
+        withCredentials: true
       });
       fetchFilterOptions();
     } catch (err) {
@@ -81,12 +90,12 @@ export default function AdminPanel() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/specimens');
-      if (!res.ok) throw new Error('Failed to fetch specimens');
-      const data = await res.json();
-      setSpecimens(data.data.specimens || []);
+      const res = await axios.get('/specimens', {
+        withCredentials: true
+      });
+      setSpecimens(res.data.data.specimens || []);
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.message || 'Failed to fetch specimens');
       setSpecimens([]);
     } finally {
       setLoading(false);
@@ -100,19 +109,15 @@ export default function AdminPanel() {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`/api/specimens/${id}`, {
-        method: 'DELETE',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        credentials: 'include',
+      await axios.delete(`/specimens/${id}`, {
+        withCredentials: true
       });
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.message || 'Failed to delete specimen');
-      }
-      fetchSpecimens();
+      // Refresh the specimens list after successful deletion
+      await fetchSpecimens();
+      setError('');
     } catch (err) {
-      setError(err.message);
+      console.error('Delete error:', err);
+      setError(err.response?.data?.message || 'Failed to delete specimen. Please try again.');
     } finally {
       setLoading(false);
     }

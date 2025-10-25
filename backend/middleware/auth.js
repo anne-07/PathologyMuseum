@@ -2,13 +2,61 @@ const jwt = require('jsonwebtoken');
 const { User } = require('../models');
 const asyncHandler = require('express-async-handler')
 
+const generateTokens = (user) => {
+  // Generate access token (15 minutes)
+  const accessToken = jwt.sign(
+    { id: user._id, role: user.role },
+    process.env.JWT_SECRET || 'your-secret-key',
+    { expiresIn: '15m' }
+  );
+
+  // Generate refresh token (7 days)
+  const refreshToken = jwt.sign(
+    { id: user._id },
+    process.env.JWT_REFRESH_SECRET || 'your-refresh-secret',
+    { expiresIn: '7d' }
+  );
+
+  return { accessToken, refreshToken };
+};
+
+const setTokenCookies = (res, { accessToken, refreshToken }) => {
+  const isProd = process.env.NODE_ENV === 'production';
+  const common = {
+    httpOnly: true,
+    secure: isProd, // HTTPS only in production
+    sameSite: isProd ? 'strict' : 'lax', // lax is friendlier for local dev
+    path: '/',
+  };
+
+  // Set access token in HTTP-only cookie
+  res.cookie('accessToken', accessToken, {
+    ...common,
+    maxAge: 15 * 60 * 1000, // 15 minutes
+  });
+
+  // Set refresh token in HTTP-only cookie
+  res.cookie('refreshToken', refreshToken, {
+    ...common,
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  });
+};
+
+const clearTokenCookies = (res) => {
+  res.clearCookie('accessToken');
+  res.clearCookie('refreshToken');
+};
+
 const auth = async (req, res, next) => {
   try {
-    //let token
-    const token = req.headers.authorization && req.headers.authorization.split(' ')[1];
-    console.log('Authorization header:', req.headers.authorization);
+    // Try to get token from Authorization header first
+    let token = req.headers.authorization?.split(' ')[1];
+    
+    // If not in header, try to get from cookies
+    if (!token && req.cookies?.accessToken) {
+      token = req.cookies.accessToken;
+    }
 
-    //const token = req.cookies?.jwt;
     if (!token) {
       return res.status(401).json({
         status: 'error',
@@ -16,10 +64,10 @@ const auth = async (req, res, next) => {
       });
     }
 
+    // Verify the access token
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    console.log("Decoded ID:", decoded.id);
     const user = await User.findById(decoded.id).select('-password');
-    console.log("Found User:", user);
+    
     if (!user) {
       return res.status(401).json({
         status: 'error',
@@ -30,9 +78,20 @@ const auth = async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
+    // If token is expired, try to refresh it
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({
+        status: 'error',
+        code: 'TOKEN_EXPIRED',
+        message: 'Access token expired',
+        shouldRefresh: true
+      });
+    }
+    
     res.status(401).json({
       status: 'error',
-      message: 'Invalid token'
+      message: 'Invalid token',
+      error: error.message
     });
   }
 };
@@ -47,4 +106,10 @@ const adminOnly = (req, res, next) => {
   next();
 };
 
-module.exports = { auth, adminOnly };
+module.exports = { 
+  auth, 
+  adminOnly, 
+  generateTokens, 
+  setTokenCookies, 
+  clearTokenCookies 
+};

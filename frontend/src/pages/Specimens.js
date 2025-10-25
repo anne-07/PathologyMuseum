@@ -45,7 +45,11 @@ export default function Specimens() {
     setFilterError(null);
     try {
       const types = [ 'organ', 'system','diseaseCategory'];
-      const results = await Promise.all(types.map(type => axios.get(`${API_URL}/filter-options?type=${type}`)));
+      const results = await Promise.all(types.map(type => 
+        axios.get(`${API_URL}/filter-options?type=${type}`, {
+          withCredentials: true
+        })
+      ));
       const newOptions = {};
       types.forEach((type, i) => {
         newOptions[type] = results[i].data.data.options.map(opt => opt.value);
@@ -87,7 +91,9 @@ export default function Specimens() {
       setLoading(true);
       setError(null);
       try {
-        const response = await axios.get(`${API_URL}/specimens${buildQuery()}`);
+        const response = await axios.get(`${API_URL}/specimens${buildQuery()}`, {
+          withCredentials: true
+        });
         if (response.data && response.data.data && response.data.data.specimens) {
           setSpecimens(response.data.data.specimens);
           setFilteredSpecimens(response.data.data.specimens);

@@ -117,7 +117,7 @@ const SpecimenDetail = () => {
   useEffect(() => {
     setLoading(true);
     setFetchError(null);
-    axios.get(`/api/specimens/${id}`)
+    axios.get(`/specimens/${id}`)
       .then(res => {
         setSpecimen(res.data.data.specimen);
         setLoading(false);
@@ -174,8 +174,7 @@ const SpecimenDetail = () => {
     if (!isAuthenticated) return;
     setLoadingBookmark(true);
     const token = localStorage.getItem('token');
-    axios.get('/api/bookmarks', {
-      headers: { Authorization: `Bearer ${token}` },
+    axios.get('/bookmarks', {
       withCredentials: true
     })
     .then(res => {
@@ -217,8 +216,7 @@ const SpecimenDetail = () => {
     }
     setLoadingBookmark(true);
     const token = localStorage.getItem('token');
-    axios.delete(`/api/bookmarks/${bookmarkId}`, {
-      headers: { Authorization: `Bearer ${token}` },
+    axios.delete(`/bookmarks/${bookmarkId}`, {
       withCredentials: true
     })
       .then(() => {
@@ -235,7 +233,7 @@ const SpecimenDetail = () => {
 
   const handleSaveNote = () => {
     const token = localStorage.getItem('token');
-    axios.post('/api/bookmarks', {
+    axios.post('/bookmarks', {
       specimenId: specimen._id,
       type: 'specimen',
       name: specimen?.title || specimen?.name,
@@ -244,7 +242,6 @@ const SpecimenDetail = () => {
       notes: note,
       folder: '',
     }, {
-      headers: { Authorization: `Bearer ${token}` },
       withCredentials: true
     })
       .then(res => {

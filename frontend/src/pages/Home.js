@@ -44,7 +44,7 @@ export default function Home() {
       }
 
       // Fetch specimen data for each ID (in order)
-      const res = await axios.get('/api/specimens', { params: { ids: ids.join(',') } });
+      const res = await axios.get('/specimens', { params: { ids: ids.join(',') } });
       // The backend should return specimens in the same order as requested IDs; if not, sort them
       const fetched = res.data.data.specimens || [];
       const idToSpecimen = Object.fromEntries(fetched.map(s => [s._id, s]));
@@ -62,15 +62,14 @@ export default function Home() {
     setLoadingBookmarks(true);
     setErrorBookmarks(null);
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get('/api/bookmarks', {
-        headers: { Authorization: `Bearer ${token}` },
+      const res = await axios.get('/bookmarks', {
         withCredentials: true
       });
       // Assuming bookmarks have a 'createdAt' or 'updatedAt' field
       const sorted = (res.data.data || []).sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt));
       setRecentBookmarks(sorted.slice(0, 5));
     } catch (err) {
+      console.error('Bookmarks fetch error:', err);
       setErrorBookmarks('Failed to load bookmarks');
     } finally {
       setLoadingBookmarks(false);
