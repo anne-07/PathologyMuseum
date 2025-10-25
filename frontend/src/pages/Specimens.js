@@ -1,55 +1,58 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { MagnifyingGlassIcon, FunnelIcon, Squares2X2Icon, ListBulletIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, FunnelIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import SearchableSelect from '../components/SearchableSelect';
+import FilterSection from '../components/specimens/FilterSection';
 
 const API_URL = 'http://localhost:5000/api';
 
-
-
-export default function Specimens() {
-  const { isAuthenticated } = useAuth();
-  const navigate = useNavigate();
-  useEffect(() => {
-    if (!isAuthenticated) navigate('/login');
-  }, [isAuthenticated, navigate]);
-  const [searchParams] = useSearchParams();
-  // Only list mode for specimen preview
-  const viewMode = 'list';
-  const [searchQuery, setSearchQuery] = useState('');
+const useSpecimens = () => {
+  const [specimens, setSpecimens] = useState([]);
   const [filteredSpecimens, setFilteredSpecimens] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [activeFilters, setActiveFilters] = useState({
-    system: searchParams.get('system') || '',
+    system: '',
     organ: '',
     diseaseCategory: '',
   });
-  const [specimens, setSpecimens] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  // Dynamic filter options
   const [filterOptions, setFilterOptions] = useState({
-
     organ: [],
     system: [],
     diseaseCategory: [],
   });
   const [filterLoading, setFilterLoading] = useState(false);
   const [filterError, setFilterError] = useState(null);
-  const [newFilter, setNewFilter] = useState({ organ: '', system: '',diseaseCategory: '' });
+  const [searchParams] = useSearchParams();
 
-  // Fetch filter options from backend
-  const fetchFilterOptions = async () => {
+  // Initialize active filters from URL params
+  useEffect(() => {
+    const system = searchParams.get('system') || '';
+    if (system) {
+      setActiveFilters(prev => ({
+        ...prev,
+        system
+      }));
+    }
+  }, [searchParams]);
+
+  // Fetch filter options
+  const fetchFilterOptions = useCallback(async () => {
     setFilterLoading(true);
     setFilterError(null);
     try {
-      const types = [ 'organ', 'system','diseaseCategory'];
-      const results = await Promise.all(types.map(type => 
-        axios.get(`${API_URL}/filter-options?type=${type}`, {
-          withCredentials: true
-        })
-      ));
+      const types = ['organ', 'system', 'diseaseCategory'];
+      const results = await Promise.all(
+        types.map(type => 
+          axios.get(`${API_URL}/filter-options?type=${type}`, {
+            withCredentials: true
+          })
+        )
+      );
+      
       const newOptions = {};
       types.forEach((type, i) => {
         newOptions[type] = results[i].data.data.options.map(opt => opt.value);
@@ -60,154 +63,211 @@ export default function Specimens() {
     } finally {
       setFilterLoading(false);
     }
-  };
-
-  useEffect(() => { 
-    fetchFilterOptions();
-    const onStorage = (e) => {
-      if (e.key === 'filtersUpdated') fetchFilterOptions();
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
   }, []);
 
-
-  // Helper to build query string
-  const buildQuery = () => {
-    const params = [];
-    if (activeFilters.system) params.push(`system=${encodeURIComponent(activeFilters.system)}`);
-    if (activeFilters.diseaseCategory) params.push(`diseaseCategory=${encodeURIComponent(activeFilters.diseaseCategory)}`);
-    if (activeFilters.organ) params.push(`organ=${encodeURIComponent(activeFilters.organ)}`);
+  // Fetch specimens based on filters
+  const fetchSpecimens = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     
-    // Add search query if present
-    if (searchQuery) params.push(`search=${encodeURIComponent(searchQuery)}`);
+    const params = new URLSearchParams();
+    if (activeFilters.system) params.append('system', activeFilters.system);
+    if (activeFilters.diseaseCategory) params.append('diseaseCategory', activeFilters.diseaseCategory);
+    if (activeFilters.organ) params.append('organ', activeFilters.organ);
+    if (searchQuery) params.append('search', searchQuery);
 
-    return params.length ? `?${params.join('&')}` : '';
-  };
-
-
-  useEffect(() => {
-    const fetchSpecimens = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await axios.get(`${API_URL}/specimens${buildQuery()}`, {
-          withCredentials: true
-        });
-        if (response.data && response.data.data && response.data.data.specimens) {
-          setSpecimens(response.data.data.specimens);
-          setFilteredSpecimens(response.data.data.specimens);
-        } else {
-          setSpecimens([]);
-          setFilteredSpecimens([]);
-        }
-      } catch (err) {
-        console.error('Error fetching specimens:', err);
-        setError(err.response?.data?.message || 'Failed to fetch specimens');
-        setSpecimens([]);
-        setFilteredSpecimens([]);
-      } finally {
-        setLoading(false);
+    try {
+      const response = await axios.get(`${API_URL}/specimens?${params.toString()}`, {
+        withCredentials: true
+      });
+      
+      if (response.data?.data?.specimens) {
+        setSpecimens(response.data.data.specimens);
+        setFilteredSpecimens(response.data.data.specimens);
       }
-    };
-    fetchSpecimens();
-  }, [activeFilters.system, activeFilters.diseaseCategory, activeFilters.organ]);
-
-  // Filter specimens by name in real-time
-  useEffect(() => {
-    if (!specimens) {
+    } catch (err) {
+      console.error('Error fetching specimens:', err);
+      setError(err.response?.data?.message || 'Failed to fetch specimens');
+      setSpecimens([]);
       setFilteredSpecimens([]);
-      return;
+    } finally {
+      setLoading(false);
     }
-    if (!searchQuery) {
-      setFilteredSpecimens(specimens);
-    } else {
-      setFilteredSpecimens(
-        specimens.filter(s =>
-          (s.title || s.name || '').toLowerCase().includes(searchQuery.toLowerCase())
-        )
-      );
-    }
-  }, [searchQuery, specimens]);
+  }, [activeFilters, searchQuery]);
 
+  // Handle filter changes
   const handleFilterChange = (category, value) => {
-    setActiveFilters((prev) => ({
+    setActiveFilters(prev => ({
       ...prev,
-      [category]: prev[category] === value ? '' : value, // Deselect if already selected
+      [category]: prev[category] === value ? '' : value
     }));
   };
 
-  // Remove a filter by category
+  // Remove a specific filter
   const handleRemoveFilter = (category) => {
-    setActiveFilters((prev) => ({
+    setActiveFilters(prev => ({
       ...prev,
-      [category]: '',
+      [category]: ''
     }));
   };
 
-  // Clear all filters and search
+  // Clear all filters
   const handleClearAll = () => {
-    setActiveFilters({ system: '', organ: '', diseaseCategory: '' });
+    setActiveFilters({
+      system: '',
+      organ: '',
+      diseaseCategory: ''
+    });
     setSearchQuery('');
   };
 
+  // Initial data loading
+  useEffect(() => {
+    fetchFilterOptions();
+  }, [fetchFilterOptions]);
+
+  // Fetch specimens when filters change
+  useEffect(() => {
+    fetchSpecimens();
+  }, [fetchSpecimens]);
+
+  return {
+    specimens,
+    filteredSpecimens,
+    loading,
+    error,
+    searchQuery,
+    setSearchQuery,
+    activeFilters,
+    filterOptions,
+    filterLoading,
+    filterError,
+    handleFilterChange,
+    handleClearAll,
+    handleRemoveFilter
+  };
+};
+
+export default function Specimens() {
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  
+  // Authentication check
+  useEffect(() => {
+    if (!isAuthenticated) navigate('/login');
+  }, [isAuthenticated, navigate]);
+
+  // Use the custom hook for data management
+  const {
+    specimens,
+    filteredSpecimens,
+    loading,
+    error,
+    searchQuery,
+    setSearchQuery,
+    activeFilters,
+    filterOptions,
+    filterLoading,
+    filterError,
+    handleFilterChange,
+    handleClearAll,
+    handleRemoveFilter
+  } = useSpecimens();
+
+  // Check if any filters are active
+  const hasActiveFilters = Object.values(activeFilters).some(Boolean);
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mx-auto max-w-7xl px-3 sm:px-4 lg:px-6 py-4 sm:py-6">
         {/* Header */}
-        <div className="sm:flex sm:items-center sm:justify-between">
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Pathology Specimens</h1>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">Pathology Specimens</h1>
+          
+          {/* Mobile filter button */}
+          <button
+            type="button"
+            className="lg:hidden flex items-center justify-center gap-2 px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            onClick={() => setShowMobileFilters(!showMobileFilters)}
+          >
+            <FunnelIcon className="h-4 w-4" />
+            {showMobileFilters ? 'Hide Filters' : 'Show Filters'}
+            {hasActiveFilters && (
+              <span className="ml-1 inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                {Object.values(activeFilters).filter(Boolean).length}
+              </span>
+            )}
+          </button>
         </div>
 
         {/* Search and Filters */}
-        <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-4">
-
+        <div className="mt-4 sm:mt-6 grid grid-cols-1 gap-4 lg:grid-cols-4">
           {/* Filters (left sidebar) */}
-          <div className="lg:col-span-1">
-            <div className="bg-white shadow rounded-lg p-6 sticky top-4">
-              <h2 className="text-lg font-medium text-gray-900 flex items-center">
-                <FunnelIcon className="h-5 w-5 mr-2" />
-                Filters
-              </h2>
-              <div className="mt-6 space-y-6">
-                {/* Dynamic filters:  organ, system , diseaseCategory*/}
-                {[ 'organ', 'system','diseaseCategory'].map((category) => (
-                  <div key={category} className="mb-4">
-                    <h3 className="text-sm font-medium text-gray-900">
-                      {category === 'diseaseCategory' ? 'Disease Category' : 
-                       category === 'organ' ? 'Organ' : 
-                       category === 'system' ? 'System' : 
-                       category}
-                    </h3>
-                    <div className="mt-2 space-y-2 min-h-[36px]">
-                      {filterLoading && <div className="text-xs text-gray-400">Loading...</div>}
-                      {!filterLoading && filterOptions[category]?.length === 0 && (
-                        <div className="text-xs text-gray-400">No options yet.</div>
-                      )}
-                      <select
-                        name={category}
-                        value={activeFilters[category]}
-                        onChange={(e) => handleFilterChange(category, e.target.value)}
-                        className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                      >
-                        <option value=""> Select </option>
-                        {(filterOptions[category] || []).map((option) => (
-                          <option key={option} value={option}>
-                            {option}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+          <div className={`lg:col-span-1 ${!showMobileFilters && 'hidden lg:block'}`}>
+            <div className="bg-white shadow rounded-lg p-4 sm:p-5 lg:sticky lg:top-4">
+              <div className="flex justify-between items-center">
+                <h2 className="text-base sm:text-lg font-medium text-gray-900 flex items-center">
+                  <FunnelIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                  Filters
+                </h2>
+                <div className="flex items-center gap-2">
+                  {hasActiveFilters && (
+                    <button
+                      onClick={handleClearAll}
+                      className="text-xs sm:text-sm text-blue-600 hover:text-blue-800 whitespace-nowrap"
+                    >
+                      Clear all
+                    </button>
+                  )}
+                  <button 
+                    className="lg:hidden text-gray-400 hover:text-gray-500"
+                    onClick={() => setShowMobileFilters(false)}
+                  >
+                    <XMarkIcon className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+              
+              <div className="mt-4 space-y-4">
+                {/* Dynamic filters */}
+                {['organ', 'system', 'diseaseCategory'].map((category) => (
+                  <div key={category} className="py-1">
+                    <FilterSection
+                      category={category}
+                      value={activeFilters[category]}
+                      options={filterOptions[category] || []}
+                      loading={filterLoading}
+                      onChange={(value) => handleFilterChange(category, value)}
+                    />
                   </div>
                 ))}
 
-                {filterError && <div className="text-xs text-red-500 mt-2">{filterError}</div>}
+                {filterError && (
+                  <div className="text-xs text-red-500 mt-2">
+                    {filterError}
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
           {/* Main Content */}
           <div className="lg:col-span-3">
+            {/* Mobile filter summary */}
+            <div className="lg:hidden mb-3 flex items-center justify-between">
+              <h3 className="text-sm font-medium text-gray-700">
+                {filteredSpecimens.length} {filteredSpecimens.length === 1 ? 'result' : 'results'}
+              </h3>
+              {hasActiveFilters && (
+                <button
+                  onClick={handleClearAll}
+                  className="text-xs text-blue-600 hover:text-blue-800"
+                >
+                  Clear all filters
+                </button>
+              )}
+            </div>
             {/* Search Bar (above results, right column) */}
             <div className="mb-6">
               <div className="relative">
@@ -224,8 +284,8 @@ export default function Specimens() {
               </div>
             </div>
 
-            {/* Selected Filters Chips and Clear All */}
-            <div className="flex flex-wrap gap-2 mb-4">
+            {/* Selected Filters Chips */}
+            <div className="flex flex-wrap gap-2 mb-3">
               {Object.entries(activeFilters).map(([category, value]) => (
                 value ? (
                   <span key={category} className="inline-flex items-center rounded-full bg-primary-100 px-3 py-1 text-xs font-medium text-primary-800">
