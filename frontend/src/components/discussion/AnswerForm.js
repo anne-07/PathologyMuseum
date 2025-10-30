@@ -23,8 +23,6 @@ const AnswerForm = ({
     const validationErrors = {};
     if (!content.trim()) {
       validationErrors.content = 'Comment cannot be empty';
-    } else if (content.length < 10) {
-      validationErrors.content = 'Comment must be at least 10 characters long';
     }
     
     if (Object.keys(validationErrors).length > 0) {

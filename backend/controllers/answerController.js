@@ -23,7 +23,7 @@ exports.getAnswers = async (req, res) => {
       .sort({ isBestAnswer: -1, createdAt: 1 })
       .skip((page - 1) * limit)
       .limit(limit)
-      .populate('user', 'name email avatar');
+      .populate('user', 'username email');
 
     const total = await Answer.countDocuments({ question: questionId });
 
@@ -82,7 +82,7 @@ exports.createAnswer = async (req, res) => {
     });
 
     // Populate user data for the response
-    await answer.populate('user', 'name email avatar');
+    await answer.populate('user', 'username email');
 
     // Add answer to question's answers array
     question.answers.push(answer._id);

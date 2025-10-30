@@ -174,3 +174,17 @@ export const markBestAnswer = async (answerId) => {
   }
 };
 
+export const voteAnswer = async (answerId, vote = 'up') => {
+  try {
+    const response = await axios.post(
+      `${API_URL}/discussions/answers/${answerId}/vote`,
+      { vote },
+      { headers: getAuthHeader() }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error voting answer:', error);
+    throw error;
+  }
+};
+

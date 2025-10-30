@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { formatDistanceToNow, format } from 'date-fns';
 import { 
   getQuestion, 
@@ -20,6 +20,7 @@ const QuestionDetail = () => {
   const { id: questionId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const location = useLocation();
   
   const [question, setQuestion] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -33,6 +34,10 @@ const QuestionDetail = () => {
   const [hasMoreAnswers, setHasMoreAnswers] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingMoreAnswers, setLoadingMoreAnswers] = useState(false);
+
+  // Compute ownership early so it can be safely used in effects
+  const currentUserId = user?.id || user?._id;
+  const isQuestionOwner = user && question && question.user && (currentUserId === question.user._id);
 
   const loadQuestion = async () => {
     try {
@@ -55,6 +60,15 @@ const QuestionDetail = () => {
     loadQuestion();
   }, [questionId]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const shouldEdit = params.get('edit') === '1';
+    if (shouldEdit && isQuestionOwner) {
+      setEditing(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search, user, question, isQuestionOwner]);
+
   const handleDelete = async () => {
     try {
       await deleteQuestion(questionId);
@@ -70,11 +84,16 @@ const QuestionDetail = () => {
       const updatedQuestion = await updateQuestion(questionId, { 
         content: editedContent 
       });
-      setQuestion(prev => ({
-        ...prev,
-        ...updatedQuestion.data.question,
-        content: editedContent
-      }));
+      setQuestion(prev => {
+        const serverQ = updatedQuestion.data.question || {};
+        return {
+          ...prev,
+          ...serverQ,
+          // ensure we don't lose the populated user (server may return only an id)
+          user: (serverQ.user && typeof serverQ.user === 'object') ? serverQ.user : prev.user,
+          content: editedContent
+        };
+      });
       setEditing(false);
     } catch (err) {
       console.error('Error updating question:', err);
@@ -176,9 +195,8 @@ const QuestionDetail = () => {
     }
   };
 
-  const isQuestionOwner = user && question && question.user && (user.id === question.user._id || user.role === 'admin' || user.role === 'teacher');
   const canMarkBestAnswer = user && question && 
-    ((question.user && user.id === question.user._id) || 
+    ((question.user && currentUserId === question.user._id) || 
      user.role === 'admin' || 
      user.role === 'teacher');
 
@@ -231,9 +249,9 @@ const QuestionDetail = () => {
         <span className="mr-1">←</span> Back to specimen
       </button>
 
-      <div className="bg-white rounded-lg shadow-md p-4 mb-4">
+      <div className="bg-white rounded-lg shadow-md p-6 mb-4">
         <div className="flex">
-          <div className="bg-gradient-to-br from-white to-blue-50 rounded-xl shadow-sm border border-blue-100 p-6 mb-6 transition-all hover:shadow-md">
+          <div className="w-full">
             <div className="flex justify-between items-start mb-4">
               <div>
                 <div className="flex items-center mb-2">
@@ -256,10 +274,10 @@ const QuestionDetail = () => {
                 <div className="flex items-center text-sm text-gray-600 mb-4">
                   <div className="flex items-center">
                     <div className="h-8 w-8 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center text-white font-medium text-sm mr-2">
-                      {question.user?.name ? question.user.name.charAt(0).toUpperCase() : 'A'}
+                      {question.user?.username ? question.user.username.charAt(0).toUpperCase() : 'U'}
                     </div>
                     <div>
-                      <span className="font-medium text-gray-800">{question.user?.name || 'Anonymous'}</span>
+                      <span className="font-medium text-gray-800">{question.user?.username || 'Unknown'}</span>
                       <span className="mx-2 text-gray-400">•</span>
                       <span className="text-gray-500" title={new Date(question.createdAt).toLocaleString()}>
                         {formatDistanceToNow(new Date(question.createdAt), { addSuffix: true })}
@@ -274,9 +292,9 @@ const QuestionDetail = () => {
                 </div>
               </div>
               
-              {(isQuestionOwner || user?.role === 'admin') && (
+              {(isQuestionOwner || ['admin','teacher'].includes(user?.role)) && (
                 <div className="flex space-x-1 bg-white/70 rounded-lg p-1 border border-gray-100 shadow-sm">
-                  {!question.isClosed && (
+                  {isQuestionOwner && !question.isClosed && (
                     <button
                       onClick={() => setEditing(true)}
                       className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -285,19 +303,21 @@ const QuestionDetail = () => {
                       <Edit className="h-4 w-4" />
                     </button>
                   )}
-                  <button
-                    onClick={() => setShowDeleteModal(true)}
-                    className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    title="Delete question"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  {(isQuestionOwner || ['admin','teacher'].includes(user?.role)) && (
+                    <button
+                      onClick={() => setShowDeleteModal(true)}
+                      className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Delete question"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
               )}
             </div>
 
             {editing ? (
-              <div className="prose max-w-none mb-6">
+              <div className="prose max-w-none mb-0">
                 <textarea
                   className="w-full border rounded-md p-3 mb-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   value={editedContent}
@@ -329,27 +349,6 @@ const QuestionDetail = () => {
         </div>
       </div>
 
-      <div className="flex justify-between items-center text-sm text-gray-500 mb-4">
-        <div>
-          <span className="font-medium text-gray-900">
-            {question.user?.name || 'Anonymous'}
-          </span>
-          <span className="mx-2">•</span>
-          <span>Asked {formatDistanceToNow(new Date(question.createdAt), { addSuffix: true })}</span>
-          {question.updatedAt !== question.createdAt && (
-            <>
-              <span className="mx-2">•</span>
-              <span>edited {formatDistanceToNow(new Date(question.updatedAt), { addSuffix: true })}</span>
-            </>
-          )}
-        </div>
-        <div className="flex">
-          <span className="mr-4 flex items-center">
-            <span className="mr-1">💬</span>
-            {question.answerCount || 0} {question.answerCount === 1 ? 'answer' : 'answers'}
-          </span>
-        </div>
-      </div>
 
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
@@ -405,7 +404,9 @@ const QuestionDetail = () => {
         onDelete={handleAnswerDelete}
         onMarkBest={handleMarkBestAnswer}
         canMarkBestAnswer={canMarkBestAnswer}
-        currentUserId={user?.id}
+        currentUserId={currentUserId}
+        isAuthenticated={!!user}
+        isAdmin={user?.role === 'admin'}
       />
 
       {hasMoreAnswers && (

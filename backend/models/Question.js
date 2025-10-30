@@ -95,7 +95,7 @@ questionSchema.statics.findBySpecimen = function(specimenId, page = 1, limit = 1
     .sort({ isPinned: -1, lastActivity: -1 })
     .skip((page - 1) * limit)
     .limit(limit)
-    .populate('user', 'name email avatar')
+    .populate('user', 'username email')
     .populate('answerCount');
 };
 

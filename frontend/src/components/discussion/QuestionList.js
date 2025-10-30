@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
-import { getQuestionsBySpecimen, updateQuestion, createAnswer } from '../../services/discussionService';
+import { getQuestionsBySpecimen, updateQuestion, createAnswer, deleteQuestion } from '../../services/discussionService';
 import { useAuth } from '../../context/AuthContext';
-import { Check, Lock, MessageSquare, Plus } from 'react-feather';
+import { Check, Lock, MessageSquare, Plus, Edit, Trash2 } from 'react-feather';
 
 const QuestionList = ({ specimenId }) => {
   const { user } = useAuth();
@@ -14,9 +14,10 @@ const QuestionList = ({ specimenId }) => {
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [sortBy, setSortBy] = useState('newest');
+  // removed sort state
   
   const isAdmin = user?.role === 'admin' || user?.role === 'teacher';
+  const currentUserId = user?.id || user?._id;
   const [replyOpenFor, setReplyOpenFor] = useState(null);
   const [replyText, setReplyText] = useState('');
   const [replySubmitting, setReplySubmitting] = useState(false);
@@ -40,10 +41,19 @@ const QuestionList = ({ specimenId }) => {
     }
   };
 
+  const handleOwnerDelete = async (questionId) => {
+    try {
+      await deleteQuestion(questionId);
+      setQuestions(prev => prev.filter(q => q._id !== questionId));
+    } catch (err) {
+      console.error('Error deleting question:', err);
+    }
+  };
+
   useEffect(() => {
     loadQuestions(1, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resolvedSpecimenId, sortBy]);
+  }, [resolvedSpecimenId]);
 
 
   const handleCloseQuestion = async (questionId) => {
@@ -174,22 +184,12 @@ const QuestionList = ({ specimenId }) => {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-[70vh] space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <h2 className="text-2xl font-semibold text-gray-900">Discussion</h2>
-        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-          <select 
-            className="px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white border-gray-300"
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-          >
-            <option value="newest">Newest</option>
-            <option value="unanswered">Unanswered</option>
-          </select>
-          <Link
-            to={`/specimens/${resolvedSpecimenId}/ask`}
-            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md text-sm text-center shadow-sm transition-colors"
-          >
-            <Plus size={16} /> New Question
-          </Link>
-        </div>
+        <Link
+          to={`/specimens/${resolvedSpecimenId}/ask`}
+          className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md text-sm text-center shadow-sm transition-colors"
+        >
+          <Plus size={16} /> New Question
+        </Link>
       </div>
 
       <div className="space-y-4">
@@ -208,21 +208,11 @@ const QuestionList = ({ specimenId }) => {
                   </h3>
                   
                   <div className="text-sm text-gray-500 mb-3">
-                    <span>#{question._id.substring(0, 6)}</span>
+                    {question.user && (
+                      <span className="font-medium text-gray-700">{question.user.username}</span>
+                    )}
                     <span className="mx-1">•</span>
-                    <span>Opened {formatDistanceToNow(new Date(question.createdAt), { addSuffix: true })}</span>
-                    {question.user && !question.isAnonymous && (
-                      <>
-                        <span className="mx-1">by</span>
-                        <span className="font-medium text-gray-700">{question.user.name}</span>
-                      </>
-                    )}
-                    {question.answerCount > 0 && (
-                      <>
-                        <span className="mx-1">•</span>
-                        <span className="text-gray-700">{question.answerCount} {question.answerCount === 1 ? 'reply' : 'replies'}</span>
-                      </>
-                    )}
+                    <span className="text-gray-700">{question.answerCount || 0} {(question.answerCount || 0) === 1 ? 'reply' : 'replies'}</span>
                   </div>
 
                   <div className="text-gray-700 mb-3">
@@ -269,6 +259,25 @@ const QuestionList = ({ specimenId }) => {
                   >
                     <Lock size={14} /> Reopen
                   </button>
+                )}
+                
+                {(question.user?._id === currentUserId) && (
+                  <div className="flex gap-2 ml-2">
+                    <Link
+                      to={`/questions/${question._id}?edit=1`}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                      title="Edit"
+                    >
+                      <Edit size={14} /> Edit
+                    </Link>
+                    <button
+                      onClick={() => handleOwnerDelete(question._id)}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                      title="Delete"
+                    >
+                      <Trash2 size={14} /> Delete
+                    </button>
+                  </div>
                 )}
               </div>
               

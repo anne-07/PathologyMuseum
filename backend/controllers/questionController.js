@@ -57,7 +57,7 @@ exports.getQuestion = async (req, res) => {
     }
 
     const question = await Question.findById(questionId)
-      .populate('user', 'name email avatar')
+      .populate('user', 'username email')
       .populate('specimen', 'title');
 
     if (!question) {
@@ -70,7 +70,7 @@ exports.getQuestion = async (req, res) => {
     // Load answers explicitly (since Question schema does not store answers array)
     const answers = await Answer.find({ question: questionId })
       .sort({ isBestAnswer: -1, createdAt: 1 })
-      .populate('user', 'name email avatar');
+      .populate('user', 'username email');
 
     const questionJson = question.toObject({ virtuals: true });
     questionJson.answers = answers;
@@ -148,12 +148,15 @@ exports.updateQuestion = async (req, res) => {
       });
     }
 
-    // Check if user is the owner or an admin/teacher
-    if (question.user.toString() !== req.user.id && 
-        !['admin', 'teacher'].includes(req.user.role)) {
+    // Only the owner can edit title/content/tags
+    const isOwner = question.user.toString() === req.user.id;
+    const isAdminOrTeacher = ['admin', 'teacher'].includes(req.user.role);
+    const wantsContentEdit = typeof title !== 'undefined' || typeof content !== 'undefined' || typeof tags !== 'undefined';
+
+    if (wantsContentEdit && !isOwner) {
       return res.status(403).json({
         status: 'error',
-        message: 'Not authorized to update this question'
+        message: 'Only the question owner can edit the question'
       });
     }
 
@@ -163,7 +166,7 @@ exports.updateQuestion = async (req, res) => {
     
     if (typeof isClosed === 'boolean') {
       // Only admin/teacher can close or reopen; and to close, require at least one admin/teacher answer
-      if (!['admin', 'teacher'].includes(req.user.role)) {
+      if (!isAdminOrTeacher) {
         return res.status(403).json({
           status: 'error',
           message: 'Only admins/teachers can change close status'
@@ -187,6 +190,7 @@ exports.updateQuestion = async (req, res) => {
     
     question.editedAt = Date.now();
     await question.save();
+    await question.populate('user', 'username email');
 
     res.status(200).json({
       status: 'success',
@@ -216,9 +220,8 @@ exports.deleteQuestion = async (req, res) => {
       });
     }
 
-    // Check if user is the owner or an admin/teacher
-    if (question.user.toString() !== req.user.id && 
-        !['admin', 'teacher'].includes(req.user.role)) {
+    // Owner or admin/teacher can delete
+    if (question.user.toString() !== req.user.id && !['admin', 'teacher'].includes(req.user.role)) {
       return res.status(403).json({
         status: 'error',
         message: 'Not authorized to delete this question'

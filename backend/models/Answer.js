@@ -75,7 +75,7 @@ answerSchema.statics.findByQuestion = function(questionId, page = 1, limit = 10)
     .sort({ isBestAnswer: -1, createdAt: 1 })
     .skip((page - 1) * limit)
     .limit(limit)
-    .populate('user', 'name email avatar')
+    .populate('user', 'username email')
     .lean();
 };
 
