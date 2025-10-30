@@ -4,12 +4,13 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const cookieparser = require('cookie-parser');
 
-const { User, Specimen, Slide } = require('./models');
+const { User, Specimen, Slide, Notification } = require('./models');
 const authRoutes = require('./routes/auth.routes');
 const specimenRoutes = require('./routes/specimen.routes');
 const slideRoutes = require('./routes/slide.routes');
 const bookmarkRoutes = require('./routes/bookmark.routes');
 const discussionRoutes = require('./routes/discussion.routes');
+const notificationRoutes = require('./routes/notification.routes');
 // const userRoutes = require('./routes/userRoutes'); 
 
 const app = express();
@@ -43,7 +44,7 @@ mongoose.connect(MONGODB_URI, {
     console.log(' Successfully connected to MongoDB Atlas');
     console.log(' Database: pathology_museum');
     console.log(' Connection state:', mongoose.connection.readyState);
-    console.log(' Models loaded:', Object.keys({ User, Specimen, Slide }).join(', '));
+    console.log(' Models loaded:', Object.keys({ User, Specimen, Slide, Notification }).join(', '));
     startServer();
   })
   .catch((err) => {
@@ -82,6 +83,7 @@ app.use('/api/slides', slideRoutes);
 app.use('/api/filter-options', require('./routes/filterOption.routes'));
 app.use('/api/upload', require('./routes/upload.routes'));
 app.use('/api/discussions', discussionRoutes);
+app.use('/api/notifications', notificationRoutes);
 // app.use('/api/users', userRoutes);
 
 // Test route
@@ -91,7 +93,8 @@ app.get('/api/test', (req, res) => {
     models: {
       user: !!User,
       specimen: !!Specimen,
-      slide: !!Slide
+      slide: !!Slide,
+      notification: !!Notification
     },
     database: {
       connected: mongoose.connection.readyState === 1

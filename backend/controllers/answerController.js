@@ -1,5 +1,7 @@
 const Answer = require('../models/Answer');
 const Question = require('../models/Question');
+const { createNotification } = require('./notificationController');
+const { sendQuestionAnsweredEmail } = require('../utils/emailService');
 
 // @desc    Get answers for a question
 // @route   GET /api/v1/discussions/questions/:questionId/answers
@@ -87,6 +89,38 @@ exports.createAnswer = async (req, res) => {
     // Add answer to question's answers array
     question.answers.push(answer._id);
     await question.save();
+
+    // Populate question to get the user who asked it and specimen info
+    await question.populate('user', '_id username email');
+    await question.populate('specimen', 'title _id');
+    
+    // Create notification AND send email for the question asker (if not answering own question)
+    if (question.user._id.toString() !== req.user.id) {
+      // Create in-app notification
+      await createNotification({
+        recipient: question.user._id,
+        sender: req.user.id,
+        type: 'answer_posted',
+        question: questionId,
+        specimen: question.specimen._id,
+        answer: answer._id,
+        message: `Your question "${question.title}" has been answered`
+      });
+
+      // Send email notification (non-blocking - won't fail if email fails)
+      if (question.user.email) {
+        const answeredBy = req.user.username || req.user.email || 'An instructor';
+        sendQuestionAnsweredEmail(question.user.email, {
+          questionTitle: question.title,
+          answerContent: content,
+          answeredBy: answeredBy,
+          specimenTitle: question.specimen.title,
+          specimenId: question.specimen._id
+        }).catch(err => {
+          console.error(`Failed to send answer email to ${question.user.email}:`, err.message);
+        });
+      }
+    }
 
     res.status(201).json({
       status: 'success',

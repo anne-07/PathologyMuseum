@@ -2,6 +2,9 @@ const Question = require('../models/Question');
 const Answer = require('../models/Answer');
 const Slide = require('../models/Slide');
 const Specimen = require('../models/Specimen');
+const User = require('../models/User');
+const { createNotification } = require('./notificationController');
+const { sendNewQuestionEmail } = require('../utils/emailService');
 
 // @desc    Get all questions for a specimen
 // @route   GET /api/v1/discussions/specimen/:specimenId/questions
@@ -118,6 +121,38 @@ exports.createQuestion = async (req, res) => {
       isAnonymous: isAnonymous || false,
       tags: tags || []
     });
+
+    // Get student info for email
+    const student = await User.findById(req.user.id);
+    const studentName = student.username || student.email || 'Anonymous';
+
+    // Create notifications AND send emails to all admins and teachers
+    const admins = await User.find({ role: { $in: ['admin', 'teacher'] } });
+    
+    for (const admin of admins) {
+      // Create in-app notification
+      await createNotification({
+        recipient: admin._id,
+        sender: req.user.id,
+        type: 'question_posted',
+        question: question._id,
+        specimen: specimenId,
+        message: `New question: "${title}"`
+      });
+
+      // Send email notification (non-blocking - won't fail if email fails)
+      if (admin.email) {
+        sendNewQuestionEmail(admin.email, {
+          questionTitle: title,
+          questionContent: content,
+          specimenTitle: specimen.title,
+          studentName: studentName,
+          specimenId: specimenId
+        }).catch(err => {
+          console.error(`Failed to send email to ${admin.email}:`, err.message);
+        });
+      }
+    }
 
     res.status(201).json({
       status: 'success',

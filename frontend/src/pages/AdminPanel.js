@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 import SpecimenForm from './SpecimenForm';
 import AddFilterOptionForm from './AddFilterOptionForm';
+import { ClockIcon, ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
 
 // API base URL is set in axios defaults in AuthContext.js
 
@@ -13,6 +15,8 @@ export default function AdminPanel() {
   const [editSpecimen, setEditSpecimen] = useState(null);
   const [activeTab, setActiveTab] = useState('specimens');
   const [searchQuery, setSearchQuery] = useState('');
+  const [pendingQuestionsCount, setPendingQuestionsCount] = useState(0);
+  const [pendingQuestions, setPendingQuestions] = useState([]);
 
   // --- Filter Option Management State and Logic ---
   const [filterOptions, setFilterOptions] = useState({
@@ -49,6 +53,27 @@ export default function AdminPanel() {
   };
 
   useEffect(() => { fetchFilterOptions(); }, []);
+
+  // Fetch pending questions count
+  const fetchPendingQuestions = async () => {
+    try {
+      const res = await axios.get('/discussions/all?status=unanswered', {
+        withCredentials: true
+      });
+      const unanswered = res.data.data.questions || [];
+      setPendingQuestions(unanswered);
+      setPendingQuestionsCount(unanswered.length);
+    } catch (err) {
+      console.error('Error fetching pending questions:', err);
+    }
+  };
+
+  useEffect(() => { 
+    fetchPendingQuestions();
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchPendingQuestions, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const addFilterOption = async (type) => {
     if (!newFilter[type]?.trim()) return;
@@ -184,6 +209,21 @@ export default function AdminPanel() {
               Specimens
             </button>
             <button
+              onClick={() => setActiveTab('pending')}
+              className={`${
+                activeTab === 'pending'
+                  ? 'border-orange-500 text-orange-600'
+                  : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+              } whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium flex items-center`}
+            >
+              Pending Answers
+              {pendingQuestionsCount > 0 && (
+                <span className="ml-2 bg-orange-100 text-orange-800 py-0.5 px-2.5 rounded-full text-xs font-medium">
+                  {pendingQuestionsCount}
+                </span>
+              )}
+            </button>
+            <button
               onClick={() => setActiveTab('filters')}
               className={`${
                 activeTab === 'filters'
@@ -208,6 +248,82 @@ export default function AdminPanel() {
 
         {/* Content */}
         <div className="mt-8">
+
+          {activeTab === 'pending' && (
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-lg font-semibold flex items-center">
+                    <ClockIcon className="h-5 w-5 mr-2 text-orange-500" />
+                    Questions Pending Answers
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Student questions that need responses
+                  </p>
+                </div>
+                <Link
+                  to="/discussions"
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700"
+                >
+                  <ChatBubbleLeftRightIcon className="h-5 w-5 mr-2" />
+                  View All Discussions
+                </Link>
+              </div>
+              
+              {pendingQuestions.length === 0 ? (
+                <div className="bg-white shadow rounded-lg p-8 text-center text-gray-500">
+                  No pending questions at the moment
+                </div>
+              ) : (
+                <div className="bg-white shadow rounded-lg overflow-hidden">
+                  <ul className="divide-y divide-gray-200">
+                    {pendingQuestions.slice(0, 10).map((question) => (
+                      <li key={question._id} className="p-4 hover:bg-gray-50">
+                        <Link to={`/specimens/${question.specimen?._id}`} className="block">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-base font-medium text-gray-900 mb-1">
+                                {question.title}
+                              </h4>
+                              <p className="text-sm text-gray-600 line-clamp-2 mb-2">
+                                {question.content}
+                              </p>
+                              <div className="flex items-center text-xs text-gray-500 space-x-3">
+                                <span>By {question.user?.username || 'Anonymous'}</span>
+                                <span>•</span>
+                                <span>{new Date(question.createdAt).toLocaleDateString()}</span>
+                                {question.specimen && (
+                                  <>
+                                    <span>•</span>
+                                    <span className="text-primary-600">
+                                      {question.specimen.title}
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                            <span className="ml-4 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                              Pending
+                            </span>
+                          </div>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                  {pendingQuestions.length > 10 && (
+                    <div className="bg-gray-50 px-4 py-3 text-center border-t">
+                      <Link
+                        to="/discussions"
+                        className="text-sm text-primary-600 hover:text-primary-800 font-medium"
+                      >
+                        View all {pendingQuestions.length} pending questions →
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {activeTab === 'filters' && (
             <div className="mb-8">

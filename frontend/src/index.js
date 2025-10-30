@@ -23,6 +23,7 @@ import ResetPassword from './pages/ResetPassword';
 import QuestionDetail from './components/discussion/QuestionDetail';
 import QuestionForm from './components/discussion/QuestionForm';
 import QuestionList from './components/discussion/QuestionList';
+import AllDiscussions from './pages/AllDiscussions';
 
 const router = createBrowserRouter([
   {
@@ -92,6 +93,10 @@ const router = createBrowserRouter([
       {
         path: "admin",
         element: <AdminPanel />,
+      },
+      {
+        path: "discussions",
+        element: <AllDiscussions />,
       },
       {
         path: "profile", 

@@ -3,11 +3,13 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu } from '@headlessui/react';
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../context/AuthContext';
+import NotificationDropdown from './NotificationDropdown';
 
 const navigation = [
   { name: 'Home', href: '/home', userOnly: true },
   { name: 'Specimens', href: '/specimens' },
   { name: 'Bookmarks', href: '/bookmarks', userOnly: true },
+  { name: 'Discussions', href: '/discussions', adminOnly: true },
   { name: 'Admin Panel', href: '/admin', adminOnly: true },
 ];
 
@@ -77,6 +79,9 @@ export default function Navbar() {
 
           <div className="flex items-center space-x-4">
             <div className="hidden md:flex md:items-center md:space-x-4">
+              {isAuthenticated && (
+                <NotificationDropdown />
+              )}
               {isAuthenticated ? (
                 <Menu as="div" className="relative ml-3">
                   <Menu.Button className="flex rounded-full bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
