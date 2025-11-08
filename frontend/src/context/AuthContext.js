@@ -28,13 +28,17 @@ axios.interceptors.response.use(
 
     // If 401 error and not an auth endpoint, redirect to login
     if (error.response?.status === 401 && !isAuthEndpoint && !originalRequest._skipAuthRedirect) {
-      // Clear user data
-      localStorage.removeItem('user');
-      
-      // Redirect to login after a short delay
-      setTimeout(() => {
-        window.location.href = '/login';
-      }, 100);
+      // Clear user data (only in browser)
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.removeItem('user');
+        
+        // Redirect to login after a short delay
+        setTimeout(() => {
+          if (typeof window !== 'undefined') {
+            window.location.href = '/login';
+          }
+        }, 100);
+      }
     }
 
     return Promise.reject(error);

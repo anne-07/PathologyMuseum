@@ -182,7 +182,7 @@ export default function Profile() {
                 <div className="relative h-32 w-32 rounded-full bg-white p-1 shadow-md mb-4">
                   {user?.avatar ? (
                     <img 
-                      src={`${process.env.REACT_APP_API_URL || ''}${user.avatar}`} 
+                      src={`${process.env.REACT_APP_API_URL || ''}${user.avatar || ''}`} 
                       alt="Profile" 
                       className="h-full w-full rounded-full object-cover" 
                     />
