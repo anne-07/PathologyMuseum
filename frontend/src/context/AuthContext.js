@@ -1,14 +1,45 @@
 import { createContext, useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { GoogleOAuthProvider } from '@react-oauth/google';
+import { handleAxiosError } from '../utils/errorHandler';
 
 const AuthContext = createContext();
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 // Configure axios for cookie-based auth
 axios.defaults.baseURL = API_URL;
 axios.defaults.withCredentials = true;
+
+// Simple response interceptor - redirect to login on 401 errors
+// No automatic token refresh to avoid loops
+axios.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Skip handling for auth endpoints to prevent redirect loops
+    const requestUrl = originalRequest.url || '';
+    const isAuthEndpoint = requestUrl.includes('/auth/login') || 
+                          requestUrl.includes('/auth/refresh-token') ||
+                          requestUrl.includes('/auth/logout') ||
+                          requestUrl.includes('/auth/register') ||
+                          requestUrl.includes('/auth/google');
+
+    // If 401 error and not an auth endpoint, redirect to login
+    if (error.response?.status === 401 && !isAuthEndpoint && !originalRequest._skipAuthRedirect) {
+      // Clear user data
+      localStorage.removeItem('user');
+      
+      // Redirect to login after a short delay
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 100);
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -45,9 +76,16 @@ export const AuthProvider = ({ children }) => {
 
   // Check if user is logged in on initial load
   useEffect(() => {
+    let isMounted = true;
+    
     const checkAuth = async () => {
       try {
-        const response = await axios.get(`/auth/profile`);
+        const response = await axios.get(`/auth/profile`, {
+          _skipAuthRedirect: true // Don't redirect on initial check failure
+        });
+        
+        if (!isMounted) return;
+        
         if (response.data.status === 'success') {
           setUser(response.data.data.user);
           setIsAuthenticated(true);
@@ -56,15 +94,24 @@ export const AuthProvider = ({ children }) => {
           setIsAuthenticated(false);
         }
       } catch (error) {
+        if (!isMounted) return;
+        
+        // Don't redirect on initial check - just set as not authenticated
         console.error('Auth check failed:', error);
         setUser(null);
         setIsAuthenticated(false);
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     checkAuth();
+    
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const login = async (email, password) => {
@@ -86,38 +133,9 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(true);
       return { success: true };
     } catch (error) {
-      console.error('Login failed:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        config: {
-          url: error.config?.url,
-          method: error.config?.method,
-          data: error.config?.data
-        }
-      });
-      
-      let errorMessage = 'Login failed. Please try again.';
-      
-      if (error.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
-        if (error.response.status === 400) {
-          errorMessage = 'Invalid email or password format';
-        } else if (error.response.status === 401) {
-          errorMessage = 'Invalid email or password';
-        } else if (error.response.data?.message) {
-          errorMessage = error.response.data.message;
-        }
-      } else if (error.request) {
-        // The request was made but no response was received
-        errorMessage = 'No response from server. Please check your connection.';
-      }
-      
       return { 
         success: false, 
-        error: errorMessage
+        error: handleAxiosError(error, 'operation')
       };
     }
   };

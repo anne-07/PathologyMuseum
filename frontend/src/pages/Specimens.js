@@ -5,8 +5,9 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import SearchableSelect from '../components/SearchableSelect';
 import FilterSection from '../components/specimens/FilterSection';
+import { handleAxiosError } from '../utils/errorHandler';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 const useSpecimens = () => {
   const [specimens, setSpecimens] = useState([]);
@@ -59,7 +60,7 @@ const useSpecimens = () => {
       });
       setFilterOptions(newOptions);
     } catch (err) {
-      setFilterError('Failed to load filter options');
+      setFilterError(handleAxiosError(err, 'load'));
     } finally {
       setFilterLoading(false);
     }
@@ -86,8 +87,7 @@ const useSpecimens = () => {
         setFilteredSpecimens(response.data.data.specimens);
       }
     } catch (err) {
-      console.error('Error fetching specimens:', err);
-      setError(err.response?.data?.message || 'Failed to fetch specimens');
+      setError(handleAxiosError(err, 'fetch'));
       setSpecimens([]);
       setFilteredSpecimens([]);
     } finally {

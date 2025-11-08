@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import SpecimenForm from './SpecimenForm';
 import AddFilterOptionForm from './AddFilterOptionForm';
 import { ClockIcon, ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
+import { handleAxiosError } from '../utils/errorHandler';
 
 // API base URL is set in axios defaults in AuthContext.js
 
 export default function AdminPanel() {
+  const navigate = useNavigate();
   const [specimens, setSpecimens] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -46,7 +48,7 @@ export default function AdminPanel() {
       });
       setFilterOptions(newOptions);
     } catch (err) {
-      setFilterError('Failed to load filter options: ' + (err.response?.data?.message || err.message));
+      setFilterError(handleAxiosError(err, 'load'));
     } finally {
       setFilterLoading(false);
     }
@@ -61,10 +63,13 @@ export default function AdminPanel() {
         withCredentials: true
       });
       const unanswered = res.data.data.questions || [];
-      setPendingQuestions(unanswered);
-      setPendingQuestionsCount(unanswered.length);
+      // Filter out orphaned questions (those with deleted specimens)
+      const validQuestions = unanswered.filter(q => q.specimen && q.specimen._id && q.createdAt);
+      setPendingQuestions(validQuestions);
+      setPendingQuestionsCount(validQuestions.length);
     } catch (err) {
       console.error('Error fetching pending questions:', err);
+      // Silently handle - pending questions are not critical
     }
   };
 
@@ -88,7 +93,7 @@ export default function AdminPanel() {
       fetchFilterOptions();
       localStorage.setItem('filtersUpdated', Date.now());
     } catch (err) {
-      alert('Failed to add filter option: ' + (err.response?.data?.message || err.message));
+      alert(handleAxiosError(err, 'create'));
     }
   };
 
@@ -105,7 +110,7 @@ export default function AdminPanel() {
       });
       fetchFilterOptions();
     } catch (err) {
-      alert('Failed to delete filter option: ' + (err.response?.data?.message || err.message));
+      alert(handleAxiosError(err, 'delete'));
     }
   };
   // --- End Filter Option Management ---
@@ -120,8 +125,7 @@ export default function AdminPanel() {
       });
       setSpecimens(res.data.data.specimens || []);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to fetch specimens');
-      setSpecimens([]);
+      setError(handleAxiosError(err, 'fetch'));
     } finally {
       setLoading(false);
     }
@@ -141,8 +145,7 @@ export default function AdminPanel() {
       await fetchSpecimens();
       setError('');
     } catch (err) {
-      console.error('Delete error:', err);
-      setError(err.response?.data?.message || 'Failed to delete specimen. Please try again.');
+      setError(handleAxiosError(err, 'delete'));
     } finally {
       setLoading(false);
     }
@@ -277,38 +280,75 @@ export default function AdminPanel() {
               ) : (
                 <div className="bg-white shadow rounded-lg overflow-hidden">
                   <ul className="divide-y divide-gray-200">
-                    {pendingQuestions.slice(0, 10).map((question) => (
-                      <li key={question._id} className="p-4 hover:bg-gray-50">
-                        <Link to={`/specimens/${question.specimen?._id}`} className="block">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1 min-w-0">
-                              <h4 className="text-base font-medium text-gray-900 mb-1">
-                                {question.title}
-                              </h4>
-                              <p className="text-sm text-gray-600 line-clamp-2 mb-2">
-                                {question.content}
-                              </p>
-                              <div className="flex items-center text-xs text-gray-500 space-x-3">
-                                <span>By {question.user?.username || 'Anonymous'}</span>
-                                <span>•</span>
-                                <span>{new Date(question.createdAt).toLocaleDateString()}</span>
-                                {question.specimen && (
-                                  <>
-                                    <span>•</span>
-                                    <span className="text-primary-600">
-                                      {question.specimen.title}
-                                    </span>
-                                  </>
-                                )}
+                    {pendingQuestions.slice(0, 10).map((question) => {
+                      // Link to question detail page where admin can answer
+                      const questionDetailPath = `/questions/${question._id}`;
+                      // Link to specimen/slide
+                      const isSlide = question.specimenModel === 'Slide';
+                      const specimenPath = isSlide 
+                        ? `/slides/${question.specimen._id}` 
+                        : `/specimens/${question.specimen._id}`;
+                      
+                      // Format date safely
+                      const formatDate = (dateString) => {
+                        if (!dateString) return '';
+                        try {
+                          const date = new Date(dateString);
+                          if (isNaN(date.getTime())) return '';
+                          return date.toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          });
+                        } catch {
+                          return '';
+                        }
+                      };
+                      
+                      return (
+                        <li key={question._id} className="p-4 hover:bg-gray-50">
+                          <div 
+                            className="block cursor-pointer"
+                            onClick={() => navigate(questionDetailPath)}
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1 min-w-0">
+                                <h4 className="text-base font-medium text-gray-900 mb-1">
+                                  {question.title}
+                                </h4>
+                                <p className="text-sm text-gray-600 line-clamp-2 mb-2">
+                                  {question.content}
+                                </p>
+                                <div className="flex items-center text-xs text-gray-500 space-x-3 flex-wrap">
+                                  <span>By {question.user?.username || 'Anonymous'}</span>
+                                  {formatDate(question.createdAt) && (
+                                    <>
+                                      <span>•</span>
+                                      <span>{formatDate(question.createdAt)}</span>
+                                    </>
+                                  )}
+                                  {question.specimen && (
+                                    <>
+                                      <span>•</span>
+                                      <Link 
+                                        to={specimenPath}
+                                        className="text-primary-600 hover:text-primary-800 hover:underline"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        {question.specimen.title}
+                                      </Link>
+                                    </>
+                                  )}
+                                </div>
                               </div>
+                              <span className="ml-4 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                Pending
+                              </span>
                             </div>
-                            <span className="ml-4 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                              Pending
-                            </span>
                           </div>
-                        </Link>
-                      </li>
-                    ))}
+                        </li>
+                      );
+                    })}
                   </ul>
                   {pendingQuestions.length > 10 && (
                     <div className="bg-gray-50 px-4 py-3 text-center border-t">

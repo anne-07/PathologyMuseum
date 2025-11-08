@@ -21,7 +21,8 @@ const questionSchema = new Schema({
   specimenModel: {
     type: String,
     required: true,
-    enum: ['Slide', 'Specimen']
+    enum: ['Specimen'],
+    default: 'Specimen'
   },
   user: {
     type: Schema.Types.ObjectId,

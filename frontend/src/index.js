@@ -8,8 +8,6 @@ import LandingPage from './pages/LandingPage';
 import Home from './pages/Home';
 import Specimens from './pages/Specimens';
 import SpecimenDetail from './pages/SpecimenDetail';
-import Slides from './pages/Slides';
-import SlideDetail from './pages/SlideDetail';
 import Bookmarks from './pages/Bookmarks';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -45,14 +43,6 @@ const router = createBrowserRouter([
       {
         path: "specimens/:id",
         element: <SpecimenDetail />,
-      },
-      {
-        path: "slides",
-        element: <Slides />,
-      },
-      {
-        path: "slides/:id",
-        element: <SlideDetail />,
       },
       {
         path: "questions/:id",

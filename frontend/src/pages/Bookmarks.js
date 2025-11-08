@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { handleAxiosError } from '../utils/errorHandler';
 
 export default function Bookmarks() {
   const { isAuthenticated } = useAuth();
@@ -22,7 +23,7 @@ export default function Bookmarks() {
         setLoading(false);
       })
       .catch(err => {
-        setError('Failed to load bookmarks');
+        setError(handleAxiosError(err, 'load'));
         setLoading(false);
       });
   }, [isAuthenticated]);
@@ -34,7 +35,7 @@ export default function Bookmarks() {
       .then(() => {
         setBookmarks(bookmarks.filter(b => b._id !== id));
       })
-      .catch(() => setError('Failed to delete bookmark'));
+      .catch(err => setError(handleAxiosError(err, 'delete')));
   };
 
   const handleEdit = (id, note) => {
@@ -55,7 +56,7 @@ export default function Bookmarks() {
         ));
         setEditingId(null);
       })
-      .catch(() => setError('Failed to update note'));
+      .catch(err => setError(handleAxiosError(err, 'update')));
   };
 
   if (!isAuthenticated) return <div className="p-8">Please log in to view your bookmarks.</div>;

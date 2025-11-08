@@ -333,6 +333,7 @@
 import React, { useState, useEffect } from 'react';
 import { FiUploadCloud, FiX, FiFile, FiFilm, FiMic, FiBox } from 'react-icons/fi';
 import Select from 'react-select';
+import { handleAxiosError } from '../utils/errorHandler';
 
 const FileInput = ({ id, label, accept, multiple, onChange, disabled }) => (
   <div className="w-full">
@@ -480,14 +481,9 @@ export default function SpecimenForm({ specimen, onClose, filterOptions = {} }) 
           error: null
         });
       } catch (error) {
-        console.error('Error fetching filter options:', {
-          error,
-          message: error.message,
-          stack: error.stack
-        });
         setDropdownOptions(prev => ({
           ...prev,
-          error: `Failed to load filter options: ${error.message}`,
+          error: handleAxiosError(error, 'load'),
           loading: false
         }));
       }
@@ -520,7 +516,7 @@ export default function SpecimenForm({ specimen, onClose, filterOptions = {} }) 
       if (!res.ok) throw new Error('Upload failed');
       return await res.json();
     } catch (err) {
-      setError('File upload failed');
+      setError(handleAxiosError(err, 'create'));
       return null;
     } finally {
       setUploading(false);
@@ -546,7 +542,7 @@ export default function SpecimenForm({ specimen, onClose, filterOptions = {} }) 
         body: JSON.stringify({ public_id: idToDelete }),
       });
     } catch (err) {
-      setError('File deletion failed');
+      setError(handleAxiosError(err, 'delete'));
     }
   };
 
@@ -615,10 +611,13 @@ export default function SpecimenForm({ specimen, onClose, filterOptions = {} }) 
         credentials: 'include',
         body: JSON.stringify(submissionData),
       });
-      if (!res.ok) throw new Error('Failed to save specimen');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to save specimen');
+      }
       onClose();
     } catch (err) {
-      setError(err.message);
+      setError(handleAxiosError(err, 'save'));
     } finally {
       setSaving(false);
     }

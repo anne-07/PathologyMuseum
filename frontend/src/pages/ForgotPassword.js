@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { handleAxiosError } from '../utils/errorHandler';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -21,7 +22,7 @@ export default function ForgotPassword() {
         setError(res.data.message || 'Something went wrong.');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Something went wrong.');
+      setError(handleAxiosError(err, 'operation'));
     } finally {
       setLoading(false);
     }

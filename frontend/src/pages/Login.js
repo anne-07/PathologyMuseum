@@ -4,8 +4,9 @@ import { EnvelopeIcon, LockClosedIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import GoogleLoginButton from '../components/GoogleLoginButton';
+import { handleAxiosError } from '../utils/errorHandler';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -32,8 +33,7 @@ export default function Login() {
         setGoogleError(result.error || 'Google login failed');
       }
     } catch (error) {
-      console.error('Google login error:', error);
-      setGoogleError('Failed to login with Google. Please try again.');
+      setGoogleError(handleAxiosError(error, 'operation'));
     }
   };
 
@@ -99,29 +99,7 @@ export default function Login() {
         console.error('Login failed:', result.error);
       }
     } catch (error) {
-      console.error('Login error:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status
-      });
-      
-      let errorMessage = 'An error occurred during login. Please try again.';
-      
-      if (error.response) {
-        // The request was made and the server responded with a status code
-        if (error.response.status === 400) {
-          errorMessage = 'Invalid request. Please check your input.';
-        } else if (error.response.status === 401) {
-          errorMessage = 'Invalid email or password';
-        } else if (error.response.data?.message) {
-          errorMessage = error.response.data.message;
-        }
-      } else if (error.request) {
-        // The request was made but no response was received
-        errorMessage = 'No response from server. Please check your connection.';
-      }
-      
-      setError(errorMessage);
+      setError(handleAxiosError(error, 'operation'));
     } finally {
       setLoading(false);
     }

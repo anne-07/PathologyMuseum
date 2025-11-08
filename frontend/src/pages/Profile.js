@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
+import { handleAxiosError } from '../utils/errorHandler';
 import { 
   UserCircleIcon, 
   EnvelopeIcon, 
@@ -74,8 +75,7 @@ export default function Profile() {
           navigate('/login');
         }
       } catch (error) {
-        console.error('Profile fetch error:', error);
-        setError(error.response?.data?.message || 'Failed to fetch user profile. Please try again.');
+        setError(handleAxiosError(error, 'load'));
         
         // If unauthorized, clear token and redirect to login
         if (error.response?.status === 401) {
@@ -133,8 +133,7 @@ export default function Profile() {
         setTimeout(() => setSuccessMessage(''), 5000);
       }
     } catch (error) {
-      console.error('Update error:', error);
-      setError(error.response?.data?.message || 'Failed to update profile');
+      setError(handleAxiosError(error, 'update'));
       
       if (error.response?.status === 401) {
         localStorage.removeItem('token');

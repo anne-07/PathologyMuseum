@@ -20,7 +20,7 @@ const AnswerItem = ({
 
   const isAnswerOwner = answer.user && currentUserId === answer.user._id;
   const canEdit = isAnswerOwner || currentUserId === answer.user;
-  const canDelete = isAnswerOwner || isQuestionOwner || ['admin', 'teacher'].includes(currentUserId?.role);
+  const canDelete = isAnswerOwner || isQuestionOwner || currentUserId?.role === 'admin';
   const showMarkBest = canMarkBestAnswer && !isBestAnswer && !answer.isAnonymous;
 
   const handleUpdate = async () => {

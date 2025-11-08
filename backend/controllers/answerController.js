@@ -97,7 +97,7 @@ exports.createAnswer = async (req, res) => {
     // Create notification AND send email for the question asker (if not answering own question)
     if (question.user._id.toString() !== req.user.id) {
       // Create in-app notification
-      await createNotification({
+      const notification = await createNotification({
         recipient: question.user._id,
         sender: req.user.id,
         type: 'answer_posted',
@@ -106,6 +106,12 @@ exports.createAnswer = async (req, res) => {
         answer: answer._id,
         message: `Your question "${question.title}" has been answered`
       });
+
+      if (notification) {
+        console.log(`✅ In-app notification created for question asker: ${question.user.email || question.user.username}`);
+      } else {
+        console.error(`❌ Failed to create in-app notification for question asker: ${question.user.email || question.user.username}`);
+      }
 
       // Send email notification (non-blocking - won't fail if email fails)
       if (question.user.email) {
@@ -116,9 +122,19 @@ exports.createAnswer = async (req, res) => {
           answeredBy: answeredBy,
           specimenTitle: question.specimen.title,
           specimenId: question.specimen._id
-        }).catch(err => {
-          console.error(`Failed to send answer email to ${question.user.email}:`, err.message);
+        })
+        .then(result => {
+          if (result.success) {
+            console.log(`✅ Email notification sent to ${question.user.email}`);
+          } else {
+            console.warn(`⚠️  Email notification failed for ${question.user.email}:`, result.error);
+          }
+        })
+        .catch(err => {
+          console.error(`❌ Error sending email to ${question.user.email}:`, err.message);
         });
+      } else {
+        console.warn(`⚠️  No email address for question asker: ${question.user.username || question.user._id}`);
       }
     }
 
@@ -153,7 +169,7 @@ exports.updateAnswer = async (req, res) => {
 
     // Check if user is the owner or an admin/teacher
     if (answer.user.toString() !== req.user.id && 
-        !['admin', 'teacher'].includes(req.user.role)) {
+        req.user.role !== 'admin') {
       return res.status(403).json({
         status: 'error',
         message: 'Not authorized to update this answer'
@@ -194,7 +210,7 @@ exports.deleteAnswer = async (req, res) => {
 
     // Check if user is the owner or an admin/teacher
     if (answer.user.toString() !== req.user.id && 
-        !['admin', 'teacher'].includes(req.user.role)) {
+        req.user.role !== 'admin') {
       return res.status(403).json({
         status: 'error',
         message: 'Not authorized to delete this answer'
@@ -229,13 +245,18 @@ exports.deleteAnswer = async (req, res) => {
   }
 };
 
-// @desc    Mark an answer as best answer (question owner or admin/teacher only)
+// @desc    Mark an answer as best answer (question owner or admin only)
 // @route   PATCH /api/v1/discussions/answers/:id/mark-best
 // @access  Private
 exports.markBestAnswer = async (req, res) => {
   try {
     const answer = await Answer.findById(req.params.id)
-      .populate('question', 'user');
+      .populate('user', '_id')
+      .populate('question', 'user title')
+      .populate({
+        path: 'question',
+        populate: { path: 'specimen', select: '_id' }
+      });
 
     if (!answer) {
       return res.status(404).json({
@@ -244,11 +265,11 @@ exports.markBestAnswer = async (req, res) => {
       });
     }
 
-    // Check if user is the question owner or an admin/teacher
+    // Check if user is the question owner or an admin
     const isQuestionOwner = answer.question.user.toString() === req.user.id;
-    const isAdminOrTeacher = ['admin', 'teacher'].includes(req.user.role);
+    const isAdmin = req.user.role === 'admin';
     
-    if (!isQuestionOwner && !isAdminOrTeacher) {
+    if (!isQuestionOwner && !isAdmin) {
       return res.status(403).json({
         status: 'error',
         message: 'Not authorized to mark this as best answer'

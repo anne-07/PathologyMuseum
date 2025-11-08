@@ -2,13 +2,47 @@ const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 // Create a transporter object using the default SMTP transport
-const transporter = nodemailer.createTransport({
-  service: 'gmail', // or your email service
-  auth: {
-    user: process.env.EMAIL_USERNAME,
-    pass: process.env.EMAIL_PASSWORD,
-  },
-});
+// Check if email credentials are configured
+const hasEmailConfig = process.env.EMAIL_USERNAME && process.env.EMAIL_PASSWORD;
+
+// Configure email transporter
+// For Gmail: Use service: 'gmail' with App Password
+// For other providers: Use host, port, and auth settings
+const transporter = hasEmailConfig ? nodemailer.createTransport(
+  process.env.EMAIL_SERVICE === 'gmail' || !process.env.EMAIL_HOST
+    ? {
+        // Gmail configuration
+        service: 'gmail',
+        auth: {
+          user: process.env.EMAIL_USERNAME,
+          pass: process.env.EMAIL_PASSWORD,
+        },
+      }
+    : {
+        // Custom SMTP configuration (for institutional emails)
+        host: process.env.EMAIL_HOST,
+        port: process.env.EMAIL_PORT || 587,
+        secure: process.env.EMAIL_SECURE === 'true', // true for 465, false for other ports
+        auth: {
+          user: process.env.EMAIL_USERNAME,
+          pass: process.env.EMAIL_PASSWORD,
+        },
+      }
+) : null;
+
+// Verify email configuration on startup
+if (hasEmailConfig && transporter) {
+  transporter.verify((error, success) => {
+    if (error) {
+      console.error('❌ Email service configuration error:', error.message);
+      console.warn('⚠️  Email notifications will not be sent. Please configure EMAIL_USERNAME and EMAIL_PASSWORD in .env');
+    } else {
+      console.log('✅ Email service is ready to send notifications');
+    }
+  });
+} else {
+  console.warn('⚠️  Email service not configured. Set EMAIL_USERNAME and EMAIL_PASSWORD in .env to enable email notifications.');
+}
 
 /**
  * Send a password reset email
@@ -58,6 +92,15 @@ const sendPasswordResetEmail = async (to, resetToken) => {
  */
 const sendNewQuestionEmail = async (to, questionData) => {
   try {
+    // Check if email service is configured
+    if (!hasEmailConfig || !transporter) {
+      console.warn('⚠️  Email not sent to', to, '- Email service not configured');
+      console.warn('   EMAIL_USERNAME:', process.env.EMAIL_USERNAME ? 'Set' : 'Missing');
+      console.warn('   EMAIL_PASSWORD:', process.env.EMAIL_PASSWORD ? 'Set' : 'Missing');
+      console.warn('   Transporter:', transporter ? 'Available' : 'Null');
+      return { success: false, error: 'Email service not configured' };
+    }
+
     const { questionTitle, questionContent, specimenTitle, studentName, specimenId } = questionData;
     const specimenUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/specimens/${specimenId}`;
     
@@ -103,11 +146,16 @@ const sendNewQuestionEmail = async (to, questionData) => {
       `,
     };
 
+    console.log('📧 Attempting to send email to:', to);
     const info = await transporter.sendMail(mailOptions);
-    console.log('✉️ New question email sent to:', to);
+    console.log('✉️ New question email sent successfully to:', to, '| Message ID:', info.messageId);
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('❌ Error sending new question email:', error.message);
+    console.error('❌ Error sending new question email to', to);
+    console.error('   Error message:', error.message);
+    console.error('   Error code:', error.code);
+    console.error('   Error response:', error.response ? JSON.stringify(error.response, null, 2) : 'N/A');
+    console.error('   Full error:', error);
     // Don't throw - we don't want email failures to break the notification creation
     return { success: false, error: error.message };
   }
@@ -121,6 +169,15 @@ const sendNewQuestionEmail = async (to, questionData) => {
  */
 const sendQuestionAnsweredEmail = async (to, answerData) => {
   try {
+    // Check if email service is configured
+    if (!hasEmailConfig || !transporter) {
+      console.warn('⚠️  Email not sent to', to, '- Email service not configured');
+      console.warn('   EMAIL_USERNAME:', process.env.EMAIL_USERNAME ? 'Set' : 'Missing');
+      console.warn('   EMAIL_PASSWORD:', process.env.EMAIL_PASSWORD ? 'Set' : 'Missing');
+      console.warn('   Transporter:', transporter ? 'Available' : 'Null');
+      return { success: false, error: 'Email service not configured' };
+    }
+
     const { questionTitle, answerContent, answeredBy, specimenTitle, specimenId } = answerData;
     const specimenUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/specimens/${specimenId}`;
     
@@ -172,11 +229,16 @@ const sendQuestionAnsweredEmail = async (to, answerData) => {
       `,
     };
 
+    console.log('📧 Attempting to send email to:', to);
     const info = await transporter.sendMail(mailOptions);
-    console.log('✉️ Question answered email sent to:', to);
+    console.log('✉️ Question answered email sent successfully to:', to, '| Message ID:', info.messageId);
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('❌ Error sending question answered email:', error.message);
+    console.error('❌ Error sending question answered email to', to);
+    console.error('   Error message:', error.message);
+    console.error('   Error code:', error.code);
+    console.error('   Error response:', error.response ? JSON.stringify(error.response, null, 2) : 'N/A');
+    console.error('   Full error:', error);
     // Don't throw - we don't want email failures to break the notification creation
     return { success: false, error: error.message };
   }

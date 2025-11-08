@@ -4,8 +4,9 @@ import { EnvelopeIcon, LockClosedIcon, UserIcon } from '@heroicons/react/24/outl
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import GoogleLoginButton from '../components/GoogleLoginButton';
+import { handleAxiosError } from '../utils/errorHandler';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -40,8 +41,7 @@ export default function Register() {
         setGoogleError(result.error || 'Google login failed');
       }
     } catch (error) {
-      console.error('Google login error:', error);
-      setGoogleError('Failed to login with Google. Please try again.');
+      setGoogleError(handleAxiosError(error, 'operation'));
     }
   };
 
@@ -96,8 +96,7 @@ export default function Register() {
         }
       }
     } catch (err) {
-      console.error('Registration error:', err.response?.data || err.message);
-      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+      setError(handleAxiosError(err, 'create'));
     } finally {
       setLoading(false);
     }

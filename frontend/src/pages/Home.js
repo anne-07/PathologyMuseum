@@ -2,14 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-
-// Dynamic recent items will be fetched from backend
-
-const quickLinks = [
-  { name: 'Specimens Library', href: '/specimens', icon: '🔬' },
-  { name: 'Histology Slides', href: '/slides', icon: '🔍' },
-  { name: 'Bookmarks', href: '/bookmarks', icon: '📑' },
-];
+import { handleAxiosError } from '../utils/errorHandler';
+import { 
+  BookOpenIcon, 
+  BookmarkIcon, 
+  ClockIcon, 
+  MagnifyingGlassIcon,
+  ArrowRightIcon
+} from '@heroicons/react/24/outline';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -51,7 +51,7 @@ export default function Home() {
       const ordered = ids.map(id => idToSpecimen[id]).filter(Boolean);
       setRecentSpecimens(ordered);
     } catch (err) {
-      setErrorSpecimens('Failed to load recently viewed specimens');
+      setErrorSpecimens(handleAxiosError(err, 'load'));
     } finally {
       setLoadingSpecimens(false);
     }
@@ -69,8 +69,7 @@ export default function Home() {
       const sorted = (res.data.data || []).sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt));
       setRecentBookmarks(sorted.slice(0, 5));
     } catch (err) {
-      console.error('Bookmarks fetch error:', err);
-      setErrorBookmarks('Failed to load bookmarks');
+      setErrorBookmarks(handleAxiosError(err, 'load'));
     } finally {
       setLoadingBookmarks(false);
     }
@@ -91,127 +90,114 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <main className="py-10">
+      <main className="py-8">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           {/* Welcome Section */}
-          <div className="md:flex md:items-center md:justify-between">
-            <div className="min-w-0 flex-1">
-              <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
-                Welcome back, {user.username}
-              </h2>
-
-              <p className="mt-1 text-sm text-gray-500">
-                Role: {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+          <div className="mb-8">
+            <div className="mb-6">
+              <h1 className="text-3xl font-bold text-gray-900">
+                Welcome back, <span className="text-primary-600">{user.username}</span>
+              </h1>
+              <p className="mt-2 text-gray-600">
+                {user.role === 'admin' ? 'Administrator Dashboard' : 'Student Dashboard'}
               </p>
             </div>
-          </div>
 
-          {/* Quick Links */}
-          <div className="mt-8">
-            <h3 className="text-lg font-medium leading-6 text-gray-900">Quick Links</h3>
-            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {quickLinks.map((link) => (
-                <Link
-                  key={link.name}
-                  to={link.href}
-                  className="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm hover:border-primary-500 hover:ring-1 hover:ring-primary-500"
-                >
-                  <div className="flex-shrink-0 text-2xl">{link.icon}</div>
-                  <div className="min-w-0 flex-1">
-                    <span className="absolute inset-0" aria-hidden="true" />
-                    <span className="text-gray-900 font-medium text-lg">{link.name}</span>
+            {/* Essential Stats */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 mb-8">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0 bg-blue-100 rounded-lg p-3">
+                    <BookOpenIcon className="h-6 w-6 text-blue-600" />
                   </div>
-                </Link>
-              ))}
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Recently Viewed</p>
+                    <p className="text-2xl font-bold text-gray-900">{recentSpecimens.length}</p>
+                    <p className="text-xs text-gray-500 mt-1">specimens</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0 bg-purple-100 rounded-lg p-3">
+                    <BookmarkIcon className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Saved Bookmarks</p>
+                    <p className="text-2xl font-bold text-gray-900">{recentBookmarks.length}</p>
+                    <p className="text-xs text-gray-500 mt-1">items</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Recently Viewed Body System */}
-          <div className="mt-12">
-            <h3 className="text-lg font-medium leading-6 text-gray-900">Explore by Body System</h3>
-            <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-              {Array.from(new Set(recentSpecimens.map(s => s.system).filter(Boolean))).length === 0 ? (
-                <div className="text-gray-500 col-span-full">No systems found.</div>
-              ) : (
-                (() => {
-                  // Mapping from system name to image URL
-                  const systemImages = {
-                    Cardiovascular: 'https://www.shutterstock.com/image-illustration/3d-rendered-medical-illustration-male-600nw-2256981889.jpg', // Heart
-                    Respiratory: 'https://img.freepik.com/premium-photo/human-respiratory-system-lungs-anatomy-3d-illustration_1302875-22727.jpg', // Lungs
-                    //Nervous: 'https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=400&q=80', // Brain
-                    //Digestive: 'https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=400&q=80', // Digestive
-                    //Musculoskeletal: 'https://images.unsplash.com/photo-1424986620741-8822bcc7c3a5?auto=format&fit=crop&w=400&q=80', // Skeleton
-                    //Renal: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80', // Kidneys
-                    //Endocrine: 'https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=400&q=80', // Endocrine
-                    //Lymphatic: 'https://images.unsplash.com/photo-1465101178521-c1a9136a3c8a?auto=format&fit=crop&w=400&q=80', // Lymphatic
-                    //Integumentary: 'https://images.unsplash.com/photo-1465101178521-c1a9136a3c8a?auto=format&fit=crop&w=400&q=80', // Skin
-                    //Reproductive: 'https://media.gettyimages.com/id/1682989686/vector/female-reproductive-organs-illustration.jpg?s=612x612&w=0&k=20&c=yRkD2P9BOGFGxIBS5g-yyJaL1TIgBR0KC28dC7wzbr4=', // Reproductive
-                    //Immune: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80', // Immune
-                    Breast: 'https://www.shutterstock.com/image-illustration/3d-rendered-medically-accurate-illustration-600nw-1186974508.jpg',
-                    Hepatobiliary: 'https://t3.ftcdn.net/jpg/05/47/99/04/360_F_547990421_TsWtvbI2WL5wHU1aArXE7vcprk8BkU5p.jpg',
-                    "Female Genital": "https://media.gettyimages.com/id/1682989686/vector/female-reproductive-organs-illustration.jpg?s=612x612&w=0&k=20&c=yRkD2P9BOGFGxIBS5g-yyJaL1TIgBR0KC28dC7wzbr4=",
-                    "Male Genital": "https://www.shutterstock.com/shutterstock/videos/1097590213/thumb/1.jpg?ip=x480",
-                    "Head and Neck": "https://www.healthxchange.sg/sites/hexassets/Assets/head-neck/how-to-take-care-of-nervous-system.jpg",
-                    "Kidney and Lower Urinary": "https://st4.depositphotos.com/6563466/38183/i/450/depositphotos_381839760-stock-photo-human-urinary-system-bladder-anatomy.jpg",
-                    Gastrointestinal: 'https://exam.kku.ac.th/pluginfile.php/81176/course/overviewfiles/Gastrointestinal%20System.jpg',
-                    "Bone and Soft tissue": "https://lh3.googleusercontent.com/proxy/l8Y9OB6lieOhdKAayEM1Xc-nbKj3yfIpY9ZM8ZAhfdlqe47qaFphr8bYWoRj2Qvl2FgGxhPBQ1vxeK723TkLt_X48o9YOriFpT25",
-                    Miscellaneous: 'https://img.freepik.com/premium-photo/human-body-with-blue-background-that-says-human-anatomy_130714-4503.jpg',
-
-                  };
-                  const defaultImage = 'https://www.healthxchange.sg/sites/hexassets/Assets/head-neck/how-to-take-care-of-nervous-system.jpg';
-                  return Array.from(new Set(recentSpecimens.map(s => s.system).filter(Boolean))).map(system => (
-                    <Link
-                      key={system}
-                      to={`/specimens?system=${encodeURIComponent(system)}`}
-                      className="flex flex-col items-center justify-center rounded-lg border border-gray-300 bg-white px-6 py-8 shadow-sm hover:border-primary-500 hover:ring-1 hover:ring-primary-500 transition"
-                    >
-                      <div className="mb-2 w-16 h-16 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
-                        <img
-                          src={systemImages[system] || defaultImage}
-                          alt={system}
-                          className="object-cover w-full h-full"
-                        />
-                      </div>
-                      <div className="font-semibold text-gray-900 text-lg text-center">{system}</div>
-                    </Link>
-                  ));
-                })()
+          {/* Recently Viewed Specimens - Main Content */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+                  <ClockIcon className="h-6 w-6 mr-2 text-primary-600" />
+                  Recently Viewed Specimens
+                </h2>
+                <p className="mt-1 text-sm text-gray-500">Continue where you left off</p>
+              </div>
+              {recentSpecimens.length > 0 && (
+                <Link 
+                  to="/specimens" 
+                  className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center px-4 py-2 rounded-lg hover:bg-primary-50 transition-colors"
+                >
+                  Browse all
+                  <ArrowRightIcon className="ml-1 h-4 w-4" />
+                </Link>
               )}
             </div>
-          </div>
-
-          {/* Real-Time Recent Specimens */}
-          <div className="mt-12">
-            <h3 className="text-2xl font-semibold text-gray-800 mb-6 border-b pb-2">🧪 Recently Viewed Specimens</h3>
 
             {loadingSpecimens ? (
-              <div className="text-gray-500 text-center mt-4">Loading...</div>
+              <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+                <div className="animate-pulse space-y-4">
+                  <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
+                </div>
+              </div>
             ) : errorSpecimens ? (
-              <div className="text-red-500 text-center mt-4">{errorSpecimens}</div>
+              <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+                <p className="text-red-600">{errorSpecimens}</p>
+              </div>
             ) : recentSpecimens.length === 0 ? (
-              <div className="text-gray-500 text-center mt-4">No recent specimens found.</div>
+              <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+                <MagnifyingGlassIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500 mb-2">No recent specimens found.</p>
+                <Link 
+                  to="/specimens" 
+                  className="text-primary-600 hover:text-primary-700 font-medium inline-flex items-center"
+                >
+                  Browse specimens
+                  <ArrowRightIcon className="ml-1 h-4 w-4" />
+                </Link>
+              </div>
             ) : (
-              <div className="space-y-4">
-                {recentSpecimens.map(item => (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {recentSpecimens.slice(0, 9).map(item => (
                   <Link
                     key={item._id}
                     to={`/specimens/${item._id}`}
-                    className="flex items-center space-x-4 px-4 py-3 rounded-lg bg-white shadow-sm hover:shadow-lg hover:border-l-4 hover:border-primary-500 transition duration-300"
+                    className="group bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-lg hover:border-primary-300 transition-all duration-200"
                   >
-                    <div className="flex-shrink-0 w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
-                      {item.imageUrl ? (
-                        <img
-                          src={item.imageUrl}
-                          alt={item.name}
-                          className="object-cover w-12 h-12 rounded-full"
-                        />
-                      ) : (
-                        <div className="text-gray-500 text-xl">🔬</div>
+                    <div className="w-full">
+                      <h4 className="text-base font-semibold text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-2 mb-2">
+                        {item.title || item.name}
+                      </h4>
+                      {item.system && (
+                        <p className="mb-2 text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded inline-block">
+                          {item.system}
+                        </p>
                       )}
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="text-lg font-medium text-gray-800">{item.title || item.name}</h4>
-                      <p className="text-sm text-gray-500">Click to view specimen details</p>
+                      <div className="flex items-center text-xs text-gray-400">
+                        <ClockIcon className="h-3 w-3 mr-1" />
+                        Recently viewed
+                      </div>
                     </div>
                   </Link>
                 ))}
@@ -219,39 +205,95 @@ export default function Home() {
             )}
           </div>
 
-          {/* Real-Time Recent Bookmarks */}
-          <div className="mt-12">
-            <h3 className="text-lg font-medium leading-6 text-gray-900">Recent Bookmarks</h3>
-            {loadingBookmarks ? (
-              <div className="mt-2 text-gray-500">Loading...</div>
-            ) : errorBookmarks ? (
-              <div className="mt-2 text-red-500">{errorBookmarks}</div>
-            ) : (
-              <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {recentBookmarks.length === 0 ? (
-                  <div className="text-gray-500">No bookmarks found.</div>
-                ) : recentBookmarks.map(item => (
-                  <Link
-                    key={item._id}
-                    to={item.specimenId ? `/specimens/${item.specimenId}` : '#'}
-                    className="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm hover:border-primary-500 hover:ring-1 hover:ring-primary-500"
+          {/* Recent Bookmarks */}
+          {isAuthenticated && (
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+                    <BookmarkIcon className="h-6 w-6 mr-2 text-primary-600" />
+                    Recent Bookmarks
+                  </h2>
+                  <p className="mt-1 text-sm text-gray-500">Quick access to your saved items</p>
+                </div>
+                {recentBookmarks.length > 0 && (
+                  <Link 
+                    to="/bookmarks" 
+                    className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center px-4 py-2 rounded-lg hover:bg-primary-50 transition-colors"
                   >
-                    <div className="flex-shrink-0 w-16 h-16 bg-gray-100 rounded-full overflow-hidden">
-                      {item.imageUrl ? (
-                        <img src={item.imageUrl} alt={item.title || 'Bookmark'} className="object-cover w-full h-full" />
-                      ) : (
-                        <div className="flex items-center justify-center h-full text-gray-400">📑</div>
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="font-medium text-gray-900">{item.title || item.notes || 'Bookmark'}</div>
-                      <div className="text-sm text-gray-500">{item.updatedAt ? new Date(item.updatedAt).toLocaleString() : ''}</div>
-                    </div>
+                    View all
+                    <ArrowRightIcon className="ml-1 h-4 w-4" />
                   </Link>
-                ))}
+                )}
               </div>
-            )}
-          </div>
+              
+              {loadingBookmarks ? (
+                <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+                  <div className="animate-pulse space-y-4">
+                    <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
+                  </div>
+                </div>
+              ) : errorBookmarks ? (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+                  <p className="text-red-600">{errorBookmarks}</p>
+                </div>
+              ) : recentBookmarks.length === 0 ? (
+                <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+                  <BookmarkIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500 mb-2">No bookmarks yet.</p>
+                  <Link 
+                    to="/specimens" 
+                    className="text-primary-600 hover:text-primary-700 font-medium inline-flex items-center"
+                  >
+                    Start bookmarking
+                    <ArrowRightIcon className="ml-1 h-4 w-4" />
+                  </Link>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {recentBookmarks.map(item => (
+                    <Link
+                      key={item._id}
+                      to={item.specimenId ? `/specimens/${item.specimenId}` : '#'}
+                      className="group bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-lg hover:border-primary-300 transition-all duration-200"
+                    >
+                      <div className="flex items-start space-x-4">
+                        <div className="flex-shrink-0 w-16 h-16 bg-purple-100 rounded-lg overflow-hidden flex items-center justify-center ring-2 ring-gray-200 group-hover:ring-primary-300 transition-all">
+                          {item.imageUrl ? (
+                            <img 
+                              src={item.imageUrl} 
+                              alt={item.title || 'Bookmark'} 
+                              className="object-cover w-full h-full" 
+                            />
+                          ) : (
+                            <BookmarkIcon className="h-8 w-8 text-purple-600" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between">
+                            <h4 className="text-base font-semibold text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-2">
+                              {item.title || item.notes || 'Bookmark'}
+                            </h4>
+                            <BookmarkIcon className="h-4 w-4 text-purple-500 flex-shrink-0 ml-2" />
+                          </div>
+                          {item.notes && (
+                            <p className="mt-1 text-sm text-gray-500 line-clamp-1">{item.notes}</p>
+                          )}
+                          {item.updatedAt && (
+                            <div className="mt-2 flex items-center text-xs text-gray-400">
+                              <ClockIcon className="h-3 w-3 mr-1" />
+                              {new Date(item.updatedAt).toLocaleDateString()}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </main>
     </div>

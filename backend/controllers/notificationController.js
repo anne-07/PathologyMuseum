@@ -20,8 +20,8 @@ exports.getNotifications = async (req, res) => {
       .skip((page - 1) * limit)
       .limit(limit)
       .populate('sender', 'username email')
-      .populate('question', 'title')
-      .populate('specimen', 'title');
+      .populate('question', 'title _id')
+      .populate('specimen', 'title _id');
 
     const total = await Notification.countDocuments(filter);
     const unreadCount = await Notification.countDocuments({ 
@@ -145,10 +145,11 @@ exports.deleteNotification = async (req, res) => {
       });
     }
 
-    await notification.remove();
+    await Notification.findByIdAndDelete(notification._id);
 
-    res.status(204).json({
+    res.status(200).json({
       status: 'success',
+      message: 'Notification deleted successfully',
       data: null
     });
   } catch (error) {
@@ -171,9 +172,10 @@ exports.createNotification = async ({ recipient, sender, type, question, specime
       answer,
       message
     });
+    console.log(`✅ Website notification created: ${type} for user ${recipient}`);
     return notification;
   } catch (error) {
-    console.error('Error creating notification:', error);
+    console.error('❌ Error creating website notification:', error.message);
     return null;
   }
 };

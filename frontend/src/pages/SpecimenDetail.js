@@ -4,6 +4,7 @@ import '@google/model-viewer';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { handleAxiosError } from '../utils/errorHandler';
 import { 
   MagnifyingGlassIcon,
   SpeakerWaveIcon,
@@ -115,6 +116,12 @@ const SpecimenDetail = () => {
 
   // Fetch specimen data from backend
   useEffect(() => {
+    if (!id || id === 'undefined' || id === 'null') {
+      setFetchError('Invalid specimen ID');
+      setLoading(false);
+      return;
+    }
+    
     setLoading(true);
     setFetchError(null);
     axios.get(`/specimens/${id}`)
@@ -123,7 +130,7 @@ const SpecimenDetail = () => {
         setLoading(false);
       })
       .catch(err => {
-        setFetchError('Failed to load specimen data');
+        setFetchError(handleAxiosError(err, 'load'));
         setLoading(false);
       });
   }, [id]);
@@ -258,16 +265,20 @@ const SpecimenDetail = () => {
 
   return (
     <>
-      <div 
-        className="min-h-screen py-8 px-4 sm:px-6 lg:px-8"
-        style={{
-          backgroundImage: `url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQNqFwIGdpTGUCWoP0guScSloZf6-0N7D6_XDUYu0fzn5epIZzI1R1WvXUvfRDpQ7H95OU&usqp=CAU')`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundAttachment: 'fixed'
-        }}
-      >
-        <div className="max-w-7xl mx-auto">
+      <div className="relative min-h-screen">
+        <div className="absolute inset-0">
+          <img
+            className="h-full w-full object-cover"
+            src="https://plus.unsplash.com/premium_photo-1674086619163-54bd6379f538?q=80&w=1975&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+            alt="Background"
+            style={{
+              backgroundAttachment: 'fixed'
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-primary-600 to-primary-800 mix-blend-multiply" />
+        </div>
+        <div className="relative py-8 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto">
           <ImageModal open={modalOpen} src={modalImg?.src} alt={modalImg?.alt} onClose={() => setModalOpen(false)} />
           {/* Header */}
           <div className="mb-8">
@@ -308,11 +319,19 @@ const SpecimenDetail = () => {
               </div>
             )}
             {isBookmarked && !showNoteInput && (
-              <div className="mt-2 text-sm text-white flex items-center gap-2">
-                <span>Note: {note}</span>
-                <button className="text-primary-600 underline text-xs" onClick={() => setShowNoteInput(true)}>Edit</button>
+              <div className="mt-2 flex items-center gap-2 flex-wrap">
+                <div className="bg-white rounded-md px-3 py-2 text-sm text-gray-900 flex-1 min-w-0">
+                  <span className="font-medium text-gray-700">Note: </span>
+                  <span>{note}</span>
+                </div>
+                <button 
+                  className="px-2 py-1 bg-primary-600 hover:bg-primary-700 text-white text-xs rounded-md font-medium transition-colors"
+                  onClick={() => setShowNoteInput(true)}
+                >
+                  Edit
+                </button>
                 <button
-                  className="text-red-600 underline text-xs ml-2"
+                  className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded-md font-medium transition-colors disabled:bg-red-400 disabled:cursor-not-allowed"
                   onClick={handleDeleteBookmark}
                   disabled={loadingBookmark}
                 >
@@ -436,6 +455,7 @@ const SpecimenDetail = () => {
               )}
               
             </div>
+          </div>
           </div>
         </div>
       </div>

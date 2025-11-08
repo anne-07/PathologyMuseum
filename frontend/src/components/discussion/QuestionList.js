@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { getQuestionsBySpecimen, updateQuestion, createAnswer, deleteQuestion } from '../../services/discussionService';
 import { useAuth } from '../../context/AuthContext';
-import { Check, Lock, MessageSquare, Plus, Edit, Trash2 } from 'react-feather';
+import { Check, Lock, MessageSquare, Plus, Edit, Trash2, ArrowLeft } from 'react-feather';
+import { handleAxiosError } from '../../utils/errorHandler';
 
 const QuestionList = ({ specimenId }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { id: routeSpecimenId } = useParams();
   const resolvedSpecimenId = specimenId || routeSpecimenId;
   const [questions, setQuestions] = useState([]);
@@ -16,7 +18,7 @@ const QuestionList = ({ specimenId }) => {
   const [hasMore, setHasMore] = useState(true);
   // removed sort state
   
-  const isAdmin = user?.role === 'admin' || user?.role === 'teacher';
+  const isAdmin = user?.role === 'admin';
   const currentUserId = user?.id || user?._id;
   const [replyOpenFor, setReplyOpenFor] = useState(null);
   const [replyText, setReplyText] = useState('');
@@ -34,8 +36,7 @@ const QuestionList = ({ specimenId }) => {
       setHasMore(data.data.questions.length > 0);
       setError(null);
     } catch (err) {
-      console.error('Error loading questions:', err);
-      setError('Failed to load questions. Please try again later.');
+      setError(handleAxiosError(err, 'load'));
     } finally {
       setLoading(false);
     }
@@ -47,6 +48,7 @@ const QuestionList = ({ specimenId }) => {
       setQuestions(prev => prev.filter(q => q._id !== questionId));
     } catch (err) {
       console.error('Error deleting question:', err);
+      // Error is handled silently or shown via toast/notification
     }
   };
 
@@ -64,6 +66,7 @@ const QuestionList = ({ specimenId }) => {
       ));
     } catch (err) {
       console.error('Error closing question:', err);
+      // Error is handled silently or shown via toast/notification
     }
   };
 
@@ -75,6 +78,7 @@ const QuestionList = ({ specimenId }) => {
       ));
     } catch (err) {
       console.error('Error reopening question:', err);
+      // Error is handled silently or shown via toast/notification
     }
   };
 
@@ -89,6 +93,7 @@ const QuestionList = ({ specimenId }) => {
       setReplyOpenFor(null);
     } catch (err) {
       console.error('Error submitting reply:', err);
+      // Error is handled silently or shown via toast/notification
     } finally {
       setReplySubmitting(false);
     }
@@ -114,6 +119,127 @@ const QuestionList = ({ specimenId }) => {
       </span>
     );
   };
+
+  const renderQuestionItem = (question) => (
+    <div className="p-4">
+      <div className="flex items-start gap-4">
+        <div className="mt-1">
+          {renderStatusBadge(question)}
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-lg font-semibold text-gray-900 mb-1">
+            <Link to={`/questions/${question._id}`} className="hover:text-blue-600 hover:underline">
+              {question.title}
+            </Link>
+          </h3>
+          
+          <div className="text-sm text-gray-500 mb-3">
+            {question.user && (
+              <span className="font-medium text-gray-700">{question.user.username}</span>
+            )}
+            <span className="mx-1">•</span>
+            <span className="text-gray-700">{question.answerCount || 0} {(question.answerCount || 0) === 1 ? 'reply' : 'replies'}</span>
+          </div>
+
+          <div className="text-gray-700 mb-3">
+            {question.content.length > 200 ? `${question.content.substring(0, 200)}...` : question.content}
+          </div>
+
+          {question.tags && question.tags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {question.tags.map((tag, index) => (
+                <span key={index} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+        
+        {isAdmin && !question.isClosed && (
+          <div className="flex gap-2">
+            <button
+              onClick={() => setReplyOpenFor(question._id)}
+              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+            >
+              <MessageSquare size={14} /> Reply
+            </button>
+            <button
+              onClick={() => handleCloseQuestion(question._id)}
+              disabled={(question.answerCount || 0) === 0}
+              className={`inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-md border ${
+                (question.answerCount || 0) === 0
+                  ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                  : 'bg-white text-green-700 border-green-200 hover:bg-green-50'
+              }`}
+            >
+              <Check size={14} /> Close
+            </button>
+          </div>
+        )}
+        
+        {isAdmin && question.isClosed && (
+          <button
+            onClick={() => handleReopenQuestion(question._id)}
+            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+          >
+            <Lock size={14} /> Reopen
+          </button>
+        )}
+        
+        {(question.user?._id === currentUserId || question.user?.id === currentUserId) && (
+          <div className="flex gap-2 ml-2">
+            <Link
+              to={`/questions/${question._id}?edit=1`}
+              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              title="Edit"
+            >
+              <Edit size={14} /> Edit
+            </Link>
+            <button
+              onClick={() => handleOwnerDelete(question._id)}
+              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              title="Delete"
+            >
+              <Trash2 size={14} /> Delete
+            </button>
+          </div>
+        )}
+      </div>
+      
+      {isAdmin && replyOpenFor === question._id && (
+        <div className="mt-4 pl-8 border-t border-gray-100 pt-4">
+          <h4 className="text-sm font-medium text-gray-700 mb-2">Write a reply</h4>
+          <textarea
+            rows={3}
+            className="w-full border rounded-md px-3 py-2 text-sm border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Leave a reply..."
+            value={replyText}
+            onChange={(e) => setReplyText(e.target.value)}
+          />
+          <div className="mt-2 flex gap-2">
+            <button
+              onClick={() => handleReplySubmit(question._id)}
+              disabled={replySubmitting || !replyText.trim()}
+              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-sm text-white ${
+                replySubmitting || !replyText.trim() 
+                  ? 'bg-blue-300 cursor-not-allowed' 
+                  : 'bg-blue-600 hover:bg-blue-700'
+              }`}
+            >
+              {replySubmitting ? 'Posting...' : 'Comment'}
+            </button>
+            <button
+              onClick={() => { setReplyOpenFor(null); setReplyText(''); }}
+              className="px-3 py-1.5 rounded-md text-sm border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
   if (loading && questions.length === 0) {
     return (
@@ -182,6 +308,17 @@ const QuestionList = ({ specimenId }) => {
   return (
     <section className="bg-gray-50">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-[70vh] space-y-6">
+      {/* Back button and header */}
+      <div className="mb-4">
+        <button
+          onClick={() => navigate(`/specimens/${resolvedSpecimenId}`)}
+          className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium mb-4 transition-colors"
+        >
+          <ArrowLeft size={18} className="mr-2" />
+          Back to Specimen
+        </button>
+      </div>
+      
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <h2 className="text-2xl font-semibold text-gray-900">Discussion</h2>
         <Link
@@ -192,129 +329,73 @@ const QuestionList = ({ specimenId }) => {
         </Link>
       </div>
 
-      <div className="space-y-4">
-        {questions.map((question) => (
-          <div key={question._id} className={`bg-white rounded-lg border ${question.isClosed ? 'border-green-100' : 'border-gray-200'} hover:shadow-md transition-shadow`}>
-            <div className="p-4">
-              <div className="flex items-start gap-4">
-                <div className="mt-1">
-                  {renderStatusBadge(question)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                    <Link to={`/questions/${question._id}`} className="hover:text-blue-600 hover:underline">
-                      {question.title}
-                    </Link>
-                  </h3>
-                  
-                  <div className="text-sm text-gray-500 mb-3">
-                    {question.user && (
-                      <span className="font-medium text-gray-700">{question.user.username}</span>
-                    )}
-                    <span className="mx-1">•</span>
-                    <span className="text-gray-700">{question.answerCount || 0} {(question.answerCount || 0) === 1 ? 'reply' : 'replies'}</span>
-                  </div>
+      <div className="space-y-6">
+        {/* Separate questions into user's questions and others' questions */}
+        {(() => {
+          const myQuestions = questions.filter(q => {
+            const questionUserId = q.user?._id || q.user?.id;
+            return questionUserId === currentUserId;
+          });
+          const othersQuestions = questions.filter(q => {
+            const questionUserId = q.user?._id || q.user?.id;
+            return questionUserId !== currentUserId;
+          });
 
-                  <div className="text-gray-700 mb-3">
-                    {question.content.length > 200 ? `${question.content.substring(0, 200)}...` : question.content}
+          return (
+            <>
+              {/* My Questions Section */}
+              {myQuestions.length > 0 && (
+                <div>
+                  <div className="mb-4 pb-2 border-b-2 border-blue-500">
+                    <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+                      <span className="mr-2">👤</span>
+                      My Questions
+                      <span className="ml-2 text-sm font-normal text-gray-500">
+                        ({myQuestions.length})
+                      </span>
+                    </h2>
                   </div>
-
-                  {question.tags && question.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {question.tags.map((tag, index) => (
-                        <span key={index} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                
-                {isAdmin && !question.isClosed && (
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setReplyOpenFor(question._id)}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                    >
-                      <MessageSquare size={14} /> Reply
-                    </button>
-                    <button
-                      onClick={() => handleCloseQuestion(question._id)}
-                      disabled={(question.answerCount || 0) === 0}
-                      className={`inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-md border ${
-                        (question.answerCount || 0) === 0
-                          ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                          : 'bg-white text-green-700 border-green-200 hover:bg-green-50'
-                      }`}
-                    >
-                      <Check size={14} /> Close
-                    </button>
-                  </div>
-                )}
-                
-                {isAdmin && question.isClosed && (
-                  <button
-                    onClick={() => handleReopenQuestion(question._id)}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                  >
-                    <Lock size={14} /> Reopen
-                  </button>
-                )}
-                
-                {(question.user?._id === currentUserId) && (
-                  <div className="flex gap-2 ml-2">
-                    <Link
-                      to={`/questions/${question._id}?edit=1`}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                      title="Edit"
-                    >
-                      <Edit size={14} /> Edit
-                    </Link>
-                    <button
-                      onClick={() => handleOwnerDelete(question._id)}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                      title="Delete"
-                    >
-                      <Trash2 size={14} /> Delete
-                    </button>
-                  </div>
-                )}
-              </div>
-              
-              {isAdmin && replyOpenFor === question._id && (
-                <div className="mt-4 pl-8 border-t border-gray-100 pt-4">
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">Write a reply</h4>
-                  <textarea
-                    rows={3}
-                    className="w-full border rounded-md px-3 py-2 text-sm border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Leave a reply..."
-                    value={replyText}
-                    onChange={(e) => setReplyText(e.target.value)}
-                  />
-                  <div className="mt-2 flex gap-2">
-                    <button
-                      onClick={() => handleReplySubmit(question._id)}
-                      disabled={replySubmitting || !replyText.trim()}
-                      className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-sm text-white ${
-                        replySubmitting || !replyText.trim() 
-                          ? 'bg-blue-300 cursor-not-allowed' 
-                          : 'bg-blue-600 hover:bg-blue-700'
-                      }`}
-                    >
-                      {replySubmitting ? 'Posting...' : 'Comment'}
-                    </button>
-                    <button
-                      onClick={() => { setReplyOpenFor(null); setReplyText(''); }}
-                      className="px-3 py-1.5 rounded-md text-sm border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-                    >
-                      Cancel
-                    </button>
+                  <div className="space-y-4">
+                    {myQuestions.map((question) => (
+                      <div key={question._id} className={`bg-blue-50 rounded-lg border-2 ${question.isClosed ? 'border-green-200' : 'border-blue-200'} hover:shadow-md transition-shadow`}>
+                        {renderQuestionItem(question)}
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
-            </div>
-          </div>
-        ))}
+
+              {/* Others' Questions Section */}
+              {othersQuestions.length > 0 && (
+                <div>
+                  <div className="mb-4 pb-2 border-b-2 border-gray-300">
+                    <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+                      <span className="mr-2">💬</span>
+                      Other Questions
+                      <span className="ml-2 text-sm font-normal text-gray-500">
+                        ({othersQuestions.length})
+                      </span>
+                    </h2>
+                  </div>
+                  <div className="space-y-4">
+                    {othersQuestions.map((question) => (
+                      <div key={question._id} className={`bg-white rounded-lg border ${question.isClosed ? 'border-green-100' : 'border-gray-200'} hover:shadow-md transition-shadow`}>
+                        {renderQuestionItem(question)}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Show message if no questions */}
+              {questions.length === 0 && !loading && (
+                <div className="text-center py-8 text-gray-500">
+                  No questions yet. Be the first to ask!
+                </div>
+              )}
+            </>
+          );
+        })()}
       </div>
 
       {hasMore && (

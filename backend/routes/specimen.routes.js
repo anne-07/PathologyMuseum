@@ -124,7 +124,7 @@ router.patch('/:id', auth, async (req, res) => {
 // Delete specimen (admin only)
 router.delete('/:id', auth, adminOnly, async (req, res) => {
   try {
-    const specimen = await Specimen.findByIdAndDelete(req.params.id);
+    const specimen = await Specimen.findById(req.params.id);
     
     if (!specimen) {
       return res.status(404).json({
@@ -133,13 +133,43 @@ router.delete('/:id', auth, adminOnly, async (req, res) => {
       });
     }
 
+    const specimenId = specimen._id;
+
+    // Delete all questions related to this specimen (cascade delete)
+    const Question = require('../models/Question');
+    const Answer = require('../models/Answer');
+    const Notification = require('../models/Notification');
+    
+    // Find all questions for this specimen
+    const relatedQuestions = await Question.find({ 
+      specimen: specimenId,
+      specimenModel: 'Specimen'
+    });
+
+    // Delete all answers for these questions
+    const questionIds = relatedQuestions.map(q => q._id);
+    if (questionIds.length > 0) {
+      await Answer.deleteMany({ question: { $in: questionIds } });
+      // Delete all notifications related to these questions
+      await Notification.deleteMany({ question: { $in: questionIds } });
+    }
+
+    // Delete all questions
+    await Question.deleteMany({ 
+      specimen: specimenId,
+      specimenModel: 'Specimen'
+    });
+
     // Delete all bookmarks related to this specimen
     const Bookmark = require('../models/Bookmark');
-    await Bookmark.deleteMany({ specimenId: specimen._id.toString(), type: 'specimen' });
+    await Bookmark.deleteMany({ specimenId: specimenId.toString(), type: 'specimen' });
+
+    // Finally, delete the specimen itself
+    await Specimen.findByIdAndDelete(specimenId);
 
     res.json({
       status: 'success',
-      message: 'Specimen and related bookmarks deleted successfully'
+      message: 'Specimen, related discussions, and bookmarks deleted successfully'
     });
   } catch (error) {
     res.status(400).json({

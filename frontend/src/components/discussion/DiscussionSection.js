@@ -8,7 +8,7 @@ const DiscussionSection = ({ specimenId, isLoggedIn, onNavigateToLogin }) => {
   const [activeTab, setActiveTab] = useState('questions');
   const [showQuestionForm, setShowQuestionForm] = useState(false);
   
-  const isAdmin = user?.role === 'admin' || user?.role === 'teacher';
+  const isAdmin = user?.role === 'admin';
 
   const handleAskQuestion = () => {
     if (!isLoggedIn) {

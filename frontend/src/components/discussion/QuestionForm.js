@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { createQuestion } from '../../services/discussionService';
 import { useAuth } from '../../context/AuthContext';
+import { handleAxiosError } from '../../utils/errorHandler';
 
 const QuestionForm = ({ specimenId: propSpecimenId, onSuccess }) => {
   const { id: routeSpecimenId } = useParams();
@@ -14,7 +15,6 @@ const QuestionForm = ({ specimenId: propSpecimenId, onSuccess }) => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [tags, setTags] = useState('');
-  const [isAnonymous, setIsAnonymous] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [errors, setErrors] = useState({});
@@ -22,8 +22,8 @@ const QuestionForm = ({ specimenId: propSpecimenId, onSuccess }) => {
   useEffect(() => {
     if (!user) {
       navigate('/login', { state: { from: `/specimens/${resolvedSpecimenId}/ask` } });
-    } else if (user.role === 'admin' || user.role === 'teacher') {
-      // Redirect admins/teachers away from question creation
+    } else if (user.role === 'admin') {
+      // Redirect admins away from question creation
       navigate(`/specimens/${resolvedSpecimenId}/discussions`);
     }
   }, [user, navigate, resolvedSpecimenId]);
@@ -67,7 +67,7 @@ const QuestionForm = ({ specimenId: propSpecimenId, onSuccess }) => {
         title: title.trim(),
         content: content.trim(),
         specimenId: resolvedSpecimenId,
-        isAnonymous,
+        isAnonymous: false, // Always false - anonymous posting removed
         tags: tagsArray
       };
       
@@ -81,8 +81,7 @@ const QuestionForm = ({ specimenId: propSpecimenId, onSuccess }) => {
       }
       
     } catch (err) {
-      console.error('Error creating question:', err);
-      setError(err.response?.data?.message || 'Failed to create question. Please try again.');
+      setError(handleAxiosError(err, 'create'));
     } finally {
       setIsSubmitting(false);
     }
@@ -165,17 +164,6 @@ const QuestionForm = ({ specimenId: propSpecimenId, onSuccess }) => {
               disabled={isSubmitting}
             />
             <div className="mt-1 text-xs text-gray-500">Add up to 5 tags separated by commas.</div>
-          </div>
-
-          <div className="mb-6 flex items-center gap-2">
-            <input
-              id="anonymous-question"
-              type="checkbox"
-              checked={isAnonymous}
-              onChange={(e) => setIsAnonymous(e.target.checked)}
-              disabled={isSubmitting}
-            />
-            <label htmlFor="anonymous-question" className="text-sm text-gray-700">Post as anonymous</label>
           </div>
 
           <div className="flex gap-2">

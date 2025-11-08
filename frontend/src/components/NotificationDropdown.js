@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { BellIcon } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { handleAxiosError } from '../utils/errorHandler';
 
 export default function NotificationDropdown() {
   const [notifications, setNotifications] = useState([]);
@@ -17,9 +18,13 @@ export default function NotificationDropdown() {
       const res = await axios.get('/notifications/unread-count', {
         withCredentials: true
       });
-      setUnreadCount(res.data.data.count);
+      if (res.data && res.data.data) {
+        setUnreadCount(res.data.data.count || 0);
+      }
     } catch (error) {
+      // Silently fail - notifications are not critical
       console.error('Error fetching unread count:', error);
+      setUnreadCount(0);
     }
   };
 
@@ -30,9 +35,14 @@ export default function NotificationDropdown() {
       const res = await axios.get('/notifications?limit=10', {
         withCredentials: true
       });
-      setNotifications(res.data.data.notifications);
+      if (res.data && res.data.data && res.data.data.notifications) {
+        setNotifications(res.data.data.notifications);
+      } else {
+        setNotifications([]);
+      }
     } catch (error) {
       console.error('Error fetching notifications:', error);
+      setNotifications([]);
     } finally {
       setLoading(false);
     }
@@ -71,8 +81,10 @@ export default function NotificationDropdown() {
       await markAsRead(notification._id);
     }
 
-    // Navigate to the question/specimen
-    if (notification.specimen && notification.specimen._id) {
+    // Navigate to the question detail page if question exists, otherwise to specimen
+    if (notification.question && notification.question._id) {
+      navigate(`/questions/${notification.question._id}`);
+    } else if (notification.specimen && notification.specimen._id) {
       navigate(`/specimens/${notification.specimen._id}`);
     }
 

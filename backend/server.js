@@ -4,20 +4,32 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const cookieparser = require('cookie-parser');
 
-const { User, Specimen, Slide, Notification } = require('./models');
+const { User, Specimen, Notification } = require('./models');
 const authRoutes = require('./routes/auth.routes');
 const specimenRoutes = require('./routes/specimen.routes');
-const slideRoutes = require('./routes/slide.routes');
 const bookmarkRoutes = require('./routes/bookmark.routes');
 const discussionRoutes = require('./routes/discussion.routes');
-const notificationRoutes = require('./routes/notification.routes');
-// const userRoutes = require('./routes/userRoutes'); 
+const notificationRoutes = require('./routes/notification.routes'); 
 
 const app = express();
 
 // Configure CORS
+// Allow multiple origins from environment variable or default to localhost
+const allowedOrigins = process.env.FRONTEND_URL 
+  ? [process.env.FRONTEND_URL, 'http://localhost:3000', 'http://localhost:5173']
+  : ['http://localhost:3000', 'http://localhost:5173'];
+
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:5173'], // Add your frontend URL
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -28,9 +40,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 // Cookie parser (required for reading access/refresh cookies)
 app.use(cookieparser());
-
-// Register API routes
-app.use('/api/bookmarks', bookmarkRoutes);
 
 // Connect to MongoDB
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -44,7 +53,7 @@ mongoose.connect(MONGODB_URI, {
     console.log(' Successfully connected to MongoDB Atlas');
     console.log(' Database: pathology_museum');
     console.log(' Connection state:', mongoose.connection.readyState);
-    console.log(' Models loaded:', Object.keys({ User, Specimen, Slide, Notification }).join(', '));
+    console.log(' Models loaded:', Object.keys({ User, Specimen, Notification }).join(', '));
     startServer();
   })
   .catch((err) => {
@@ -76,15 +85,14 @@ app.use((req, res, next) => {
   next();
 });
 
-// Routes
+// Register API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/specimens', specimenRoutes);
-app.use('/api/slides', slideRoutes);
+app.use('/api/bookmarks', bookmarkRoutes);
 app.use('/api/filter-options', require('./routes/filterOption.routes'));
 app.use('/api/upload', require('./routes/upload.routes'));
 app.use('/api/discussions', discussionRoutes);
 app.use('/api/notifications', notificationRoutes);
-// app.use('/api/users', userRoutes);
 
 // Test route
 app.get('/api/test', (req, res) => {
@@ -93,7 +101,6 @@ app.get('/api/test', (req, res) => {
     models: {
       user: !!User,
       specimen: !!Specimen,
-      slide: !!Slide,
       notification: !!Notification
     },
     database: {

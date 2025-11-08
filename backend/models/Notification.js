@@ -13,7 +13,7 @@ const notificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['question_posted', 'answer_posted', 'answer_marked_best', 'question_closed'],
+    enum: ['question_posted', 'answer_posted', 'question_closed'],
     required: true
   },
   question: {

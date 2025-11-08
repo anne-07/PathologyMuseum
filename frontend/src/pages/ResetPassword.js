@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { LockClosedIcon } from '@heroicons/react/24/outline';
+import { handleAxiosError } from '../utils/errorHandler';
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -56,7 +57,7 @@ export default function ResetPassword() {
         }, 3000);
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to reset password. The link may have expired.');
+      setError(handleAxiosError(err, 'update'));
     } finally {
       setLoading(false);
     }

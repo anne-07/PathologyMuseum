@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { ChatBubbleLeftRightIcon, CheckCircleIcon, ClockIcon, MagnifyingGlassIcon, FunnelIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { handleAxiosError } from '../utils/errorHandler';
 
 export default function AllDiscussions() {
   const { user, isAuthenticated } = useAuth();
@@ -24,7 +25,7 @@ export default function AllDiscussions() {
 
   // Check if user is admin
   useEffect(() => {
-    if (!isAuthenticated || !user || !['admin', 'teacher'].includes(user.role)) {
+    if (!isAuthenticated || !user || user.role !== 'admin') {
       navigate('/');
     }
   }, [isAuthenticated, user, navigate]);
@@ -39,24 +40,36 @@ export default function AllDiscussions() {
       });
       
       const fetchedQuestions = res.data.data.questions || [];
-      setQuestions(fetchedQuestions);
+      
+      // Filter out orphaned questions (those with deleted specimens)
+      const validQuestions = fetchedQuestions.filter(q => q.specimen && q.specimen._id);
+      setQuestions(validQuestions);
 
-      // Extract unique specimens for filter
-      const uniqueSpecimens = [...new Set(fetchedQuestions
+      // Extract unique specimens for filter (only from valid questions)
+      const uniqueSpecimens = [...new Set(validQuestions
         .filter(q => q.specimen)
         .map(q => JSON.stringify({ id: q.specimen._id, title: q.specimen.title })))]
         .map(s => JSON.parse(s));
       setSpecimens(uniqueSpecimens);
 
-      // Calculate stats
-      const total = fetchedQuestions.length;
-      const unanswered = fetchedQuestions.filter(q => q.answerCount === 0).length;
-      const answered = fetchedQuestions.filter(q => q.answerCount > 0).length;
+      // Calculate stats (only from valid questions)
+      const total = validQuestions.length;
+      const unanswered = validQuestions.filter(q => q.answerCount === 0).length;
+      const answered = validQuestions.filter(q => q.answerCount > 0).length;
       
       setStats({ total, unanswered, answered });
     } catch (err) {
-      console.error('Error fetching questions:', err);
-      setError(err.response?.data?.message || 'Failed to fetch questions');
+      // If it's a 401 and we're still authenticated, the interceptor should handle it
+      // But if it persists, show error and check auth status
+      if (err.response?.status === 401) {
+        // Check if user is still authenticated
+        const storedUser = localStorage.getItem('user');
+        if (!storedUser || !isAuthenticated) {
+          navigate('/login');
+          return;
+        }
+      }
+      setError(handleAxiosError(err, 'fetch'));
     } finally {
       setLoading(false);
     }
@@ -68,7 +81,8 @@ export default function AllDiscussions() {
 
   // Apply filters and sorting
   useEffect(() => {
-    let filtered = [...questions];
+    // First, filter out questions with deleted specimens (orphaned questions)
+    let filtered = questions.filter(q => q.specimen && q.specimen._id);
 
     // Search filter
     if (searchQuery.trim()) {
@@ -365,83 +379,105 @@ export default function AllDiscussions() {
             </div>
           ) : (
             <ul className="divide-y divide-gray-200">
-              {filteredQuestions.map((question) => (
-                <li key={question._id} className="p-6 hover:bg-gray-50 transition-colors">
-                  <Link to={`/specimens/${question.specimen?._id}`} className="block">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        {/* Question Title */}
-                        <div className="flex items-center mb-2">
-                          <h3 className="text-lg font-semibold text-gray-900 hover:text-primary-600">
-                            {question.title}
-                          </h3>
-                          {question.isPinned && (
-                            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
-                              Pinned
-                            </span>
-                          )}
-                          {question.isClosed && (
-                            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                              Closed
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Question Content Preview */}
-                        <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                          {question.content}
-                        </p>
-
-                        {/* Meta Information */}
-                        <div className="flex items-center text-sm text-gray-500 space-x-4">
-                          <span className="flex items-center">
-                            <ChatBubbleLeftRightIcon className="h-4 w-4 mr-1" />
-                            {question.answerCount || 0} {question.answerCount === 1 ? 'answer' : 'answers'}
+              {filteredQuestions.map((question) => {
+                // Link to question detail page where users can view and answer
+                const questionDetailPath = `/questions/${question._id}`;
+                
+                // Secondary link to view the specimen (should always be available since we filter)
+                const specimenId = question.specimen._id;
+                const specimenPath = `/specimens/${specimenId}`;
+                
+                const content = (
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      {/* Question Title - Clickable to view full question */}
+                      <div className="flex items-center mb-2">
+                        <Link 
+                          to={questionDetailPath}
+                          className="text-lg font-semibold text-gray-900 hover:text-primary-600 transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {question.title}
+                        </Link>
+                        {question.isPinned && (
+                          <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                            Pinned
                           </span>
-                          <span>
-                            Asked by {question.user?.username || 'Anonymous'}
+                        )}
+                        {question.isClosed && (
+                          <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                            Closed
                           </span>
-                          <span>{timeAgo(question.createdAt)}</span>
-                          {question.specimen && (
-                            <span className="text-primary-600">
-                              in {question.specimen.title}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Tags */}
-                        {question.tags && question.tags.length > 0 && (
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {question.tags.map((tag, idx) => (
-                              <span
-                                key={idx}
-                                className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700"
-                              >
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
                         )}
                       </div>
 
-                      {/* Status Badge */}
-                      <div className="ml-4 flex-shrink-0">
-                        {question.answerCount === 0 ? (
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-800">
-                            <ClockIcon className="h-4 w-4 mr-1" />
-                            Pending
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                            <CheckCircleIcon className="h-4 w-4 mr-1" />
-                            Answered
-                          </span>
-                        )}
+                      {/* Question Content Preview */}
+                      <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                        {question.content}
+                      </p>
+
+                      {/* Meta Information */}
+                      <div className="flex items-center text-sm text-gray-500 space-x-4 flex-wrap">
+                        <span className="flex items-center">
+                          <ChatBubbleLeftRightIcon className="h-4 w-4 mr-1" />
+                          {question.answerCount || 0} {question.answerCount === 1 ? 'answer' : 'answers'}
+                        </span>
+                        <span>
+                          Asked by {question.user?.username || 'Anonymous'}
+                        </span>
+                        <span>{timeAgo(question.createdAt)}</span>
+                        <Link 
+                          to={specimenPath}
+                          className="text-primary-600 hover:text-primary-800 hover:underline"
+                          onClick={(e) => e.stopPropagation()}
+                          title="View specimen"
+                        >
+                          in {question.specimen.title}
+                        </Link>
                       </div>
+
+                      {/* Tags */}
+                      {question.tags && question.tags.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {question.tags.map((tag, idx) => (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  </Link>
-                </li>
-              ))}
+
+                    {/* Status Badge */}
+                    <div className="ml-4 flex-shrink-0">
+                      {question.answerCount === 0 ? (
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-800">
+                          <ClockIcon className="h-4 w-4 mr-1" />
+                          Pending
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                          <CheckCircleIcon className="h-4 w-4 mr-1" />
+                          Answered
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+
+                return (
+                  <li 
+                    key={question._id} 
+                    className="p-6 hover:bg-gray-50 transition-colors cursor-pointer"
+                    onClick={() => navigate(questionDetailPath)}
+                  >
+                    {content}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
