@@ -22,10 +22,12 @@ const generateTokens = (user) => {
 
 const setTokenCookies = (res, { accessToken, refreshToken }) => {
   const isProd = process.env.NODE_ENV === 'production';
+  // For cross-origin requests (different domains), use 'none' with secure
+  const sameSiteValue = isProd ? 'none' : 'lax';
   const common = {
     httpOnly: true,
-    secure: isProd, // HTTPS only in production
-    sameSite: isProd ? 'strict' : 'lax', // lax is friendlier for local dev
+    secure: isProd, // HTTPS only in production (required for sameSite: 'none')
+    sameSite: sameSiteValue,
     path: '/',
   };
 

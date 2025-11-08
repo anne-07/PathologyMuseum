@@ -22,7 +22,6 @@ export default function GoogleLoginButton({ onSuccess, onError }) {
           text="continue_with"
           shape="rectangular"
           size="large"
-          width="100%"
           auto_select={false}
         />
       </div>

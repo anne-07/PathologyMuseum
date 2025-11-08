@@ -78,6 +78,8 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('user', JSON.stringify(userData));
         setUser(userData);
         setIsAuthenticated(true);
+        // Don't trigger checkAuth immediately - cookies are already set
+        setLoading(false);
         return { success: true };
       }
       return { success: false, error: response.data.message || 'Google login failed' };
@@ -116,18 +118,45 @@ export const AuthProvider = ({ children }) => {
   // Check if user is logged in on initial load
   useEffect(() => {
     let isMounted = true;
+    let shouldCheck = true;
+    
+    // Check if user is already in localStorage (from previous session)
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        try {
+          const userData = JSON.parse(storedUser);
+          setUser(userData);
+          setIsAuthenticated(true);
+          shouldCheck = false; // Skip API check if we have stored user
+        } catch (e) {
+          // Invalid stored data, proceed with API check
+        }
+      }
+    }
     
     const checkAuth = async () => {
+      if (!shouldCheck) {
+        setLoading(false);
+        return;
+      }
+      
       try {
         const response = await axios.get(`/auth/profile`, {
-          _skipAuthRedirect: true // Don't redirect on initial check failure
+          _skipAuthRedirect: true, // Don't redirect on initial check failure
+          withCredentials: true // Ensure cookies are sent
         });
         
         if (!isMounted) return;
         
         if (response.data.status === 'success') {
-          setUser(response.data.data.user);
+          const userData = response.data.data.user;
+          setUser(userData);
           setIsAuthenticated(true);
+          // Update localStorage with fresh user data
+          if (typeof window !== 'undefined' && window.localStorage) {
+            localStorage.setItem('user', JSON.stringify(userData));
+          }
         } else {
           setUser(null);
           setIsAuthenticated(false);
@@ -136,9 +165,16 @@ export const AuthProvider = ({ children }) => {
         if (!isMounted) return;
         
         // Don't redirect on initial check - just set as not authenticated
-        console.error('Auth check failed:', error);
+        // Only log error if it's not a 401 (401 is expected when not logged in)
+        if (error.response?.status !== 401) {
+          console.error('Auth check failed:', error);
+        }
         setUser(null);
         setIsAuthenticated(false);
+        // Clear invalid stored user data
+        if (typeof window !== 'undefined' && window.localStorage) {
+          localStorage.removeItem('user');
+        }
       } finally {
         if (isMounted) {
           setLoading(false);
@@ -146,12 +182,16 @@ export const AuthProvider = ({ children }) => {
       }
     };
 
-    checkAuth();
+    if (shouldCheck) {
+      checkAuth();
+    } else {
+      setLoading(false);
+    }
     
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, []); // Empty deps - only run on mount
 
   const login = async (email, password) => {
     try {
