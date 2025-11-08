@@ -12,30 +12,28 @@ const discussionRoutes = require('./routes/discussion.routes');
 const notificationRoutes = require('./routes/notification.routes'); 
 
 const app = express();
-
-// Configure CORS
-// Allow multiple origins from environment variable or default to localhost
-const allowedOrigins = process.env.FRONTEND_URL 
-  ? [process.env.FRONTEND_URL, 'http://localhost:3000', 'http://localhost:5173']
-  : ['http://localhost:3000', 'http://localhost:5173'];
+const allowedOrigins = [
+  process.env.FRONTEND_URL || '',
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'https://digital-pathology-museum.vercel.app' // fallback
+];
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+    if (!origin) return callback(null, true); // allow non-browser tools
+    if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
+      console.error(`❌ CORS blocked request from origin: ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  preflightContinue: false,
-  optionsSuccessStatus: 204
 }));
+
 
 // Handle preflight requests explicitly
 app.options('*', cors());
