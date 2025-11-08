@@ -48,8 +48,20 @@ export const AuthProvider = ({ children }) => {
 
   const loginWithGoogle = async (credentialResponse) => {
     try {
+      // Check if credential is provided
+      if (!credentialResponse || !credentialResponse.credential) {
+        return { 
+          success: false, 
+          error: 'No Google credential received. Please try again.' 
+        };
+      }
+
       const response = await axios.post(`/auth/google`, {
         token: credentialResponse.credential
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
       
       if (response.data.status === 'success') {
@@ -64,12 +76,35 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticated(true);
         return { success: true };
       }
-      return { success: false, error: response.data.message };
+      return { success: false, error: response.data.message || 'Google login failed' };
     } catch (error) {
       console.error('Google login error:', error);
+      
+      // Handle specific error cases
+      let errorMessage = 'Google login failed. Please try again.';
+      
+      if (error.response) {
+        const status = error.response.status;
+        const data = error.response.data;
+        
+        if (status === 503) {
+          errorMessage = 'Google OAuth is not configured on the server.';
+        } else if (status === 400 || status === 401) {
+          errorMessage = data?.message || 'Invalid Google token. Please try again.';
+        } else if (status === 403) {
+          errorMessage = 'CORS error: Request not allowed. Please check server configuration.';
+        } else {
+          errorMessage = data?.message || errorMessage;
+        }
+      } else if (error.request) {
+        errorMessage = 'Network error: Could not reach the server.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       return { 
         success: false, 
-        error: error.response?.data?.message || 'Google login failed. Please try again.' 
+        error: errorMessage
       };
     }
   };

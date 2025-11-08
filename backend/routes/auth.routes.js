@@ -67,10 +67,23 @@ router.post('/refresh-token', async (req, res) => {
 
 const { OAuth2Client } = require('google-auth-library');
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const client = new OAuth2Client(CLIENT_ID);
+
+// Only create OAuth2Client if CLIENT_ID is configured
+let client = null;
+if (CLIENT_ID) {
+  client = new OAuth2Client(CLIENT_ID);
+}
 
 router.post('/google', async (req, res) => {
   try {
+    // Check if Google OAuth is configured
+    if (!CLIENT_ID || !client) {
+      return res.status(503).json({
+        status: 'error',
+        message: 'Google OAuth is not configured. Please set GOOGLE_CLIENT_ID environment variable.'
+      });
+    }
+
     const { token } = req.body;
     if (!token) {
       return res.status(400).json({
@@ -137,9 +150,24 @@ router.post('/google', async (req, res) => {
     });
   } catch (error) {
     console.error('Google auth error:', error);
+    
+    // Provide more specific error messages
+    let errorMessage = 'Google authentication failed';
+    if (error.message) {
+      if (error.message.includes('Invalid token signature')) {
+        errorMessage = 'Invalid Google token. Please try logging in again.';
+      } else if (error.message.includes('Token used too early')) {
+        errorMessage = 'Token timing error. Please try again.';
+      } else if (error.message.includes('Token expired')) {
+        errorMessage = 'Token expired. Please try logging in again.';
+      } else {
+        errorMessage = error.message;
+      }
+    }
+    
     res.status(400).json({
       status: 'error',
-      message: error.message || 'Google authentication failed'
+      message: errorMessage
     });
   }
 });

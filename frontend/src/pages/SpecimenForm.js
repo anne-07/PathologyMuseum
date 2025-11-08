@@ -335,6 +335,8 @@ import { FiUploadCloud, FiX, FiFile, FiFilm, FiMic, FiBox } from 'react-icons/fi
 import Select from 'react-select';
 import { handleAxiosError } from '../utils/errorHandler';
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+
 const FileInput = ({ id, label, accept, multiple, onChange, disabled }) => (
   <div className="w-full">
     <label htmlFor={id} className="w-full text-center cursor-pointer bg-gray-50 hover:bg-gray-100 text-gray-600 py-2 px-4 rounded-md border border-dashed border-gray-300 transition">
@@ -412,9 +414,9 @@ export default function SpecimenForm({ specimen, onClose, filterOptions = {} }) 
 
         // Now fetch all filter options at once
         const urls = [
-          'http://localhost:5000/api/filter-options?type=organ',
-          'http://localhost:5000/api/filter-options?type=system',
-          'http://localhost:5000/api/filter-options?type=diseaseCategory'
+          `${API_URL}/filter-options?type=organ`,
+          `${API_URL}/filter-options?type=system`,
+          `${API_URL}/filter-options?type=diseaseCategory`
         ];
 
         console.log('Fetching from URLs:', urls);
@@ -508,7 +510,7 @@ export default function SpecimenForm({ specimen, onClose, filterOptions = {} }) 
     const formData = new FormData();
     formData.append('file', file);
     try {
-      const res = await fetch('http://localhost:5000/api/upload', {
+      const res = await fetch(`${API_URL}/upload`, {
         method: 'POST',
         body: formData,
         credentials: 'include',
@@ -536,7 +538,7 @@ export default function SpecimenForm({ specimen, onClose, filterOptions = {} }) 
       return;
     }
     try {
-      await fetch('http://localhost:5000/api/upload', {
+      await fetch(`${API_URL}/upload`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ public_id: idToDelete }),

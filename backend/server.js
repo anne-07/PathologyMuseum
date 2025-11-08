@@ -32,8 +32,13 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }));
+
+// Handle preflight requests explicitly
+app.options('*', cors());
 
 // Body parser middleware
 app.use(express.json());
@@ -120,6 +125,14 @@ app.use((req, res) => {
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(' Error:', err);
+
+  // CORS error
+  if (err.message && err.message.includes('CORS')) {
+    return res.status(403).json({
+      status: 'error',
+      message: 'CORS: Request not allowed from this origin'
+    });
+  }
 
   // Mongoose validation error
   if (err.name === 'ValidationError') {
